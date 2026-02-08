@@ -228,20 +228,20 @@ function populateSelect(selectId, options) {
 
 // ========== FILTERING ==========
 function applyFilters() {
-    const selectedCohort = document.getElementById('cohortFilter').value;
-    const selectedDepartment = document.getElementById('departmentFilter').value;
-    const selectedHRBP = document.getElementById('hrbpFilter').value;
-    const selectedType = document.getElementById('employeeTypeFilter').value;
-    const selectedLevel = document.getElementById('levelFilter').value;
+    const selectedCohorts = getSelectedValues('cohortFilter');
+    const selectedDepartments = getSelectedValues('departmentFilter');
+    const selectedHRBPs = getSelectedValues('hrbpFilter');
+    const selectedTypes = getSelectedValues('employeeTypeFilter');
+    const selectedLevels = getSelectedValues('levelFilter');
     const startDate = new Date(document.getElementById('startDate').value);
     const endDate = new Date(document.getElementById('endDate').value);
 
     filteredData = employeeData.filter(emp => {
-        const cohortMatch = selectedCohort === 'all' || emp.cohort === selectedCohort;
-        const deptMatch = selectedDepartment === 'all' || emp.department === selectedDepartment;
-        const hrbpMatch = selectedHRBP === 'all' || emp.hrbp === selectedHRBP;
-        const typeMatch = selectedType === 'all' || emp.employeeType === selectedType;
-        const levelMatch = selectedLevel === 'all' || emp.level === selectedLevel;
+        const cohortMatch = selectedCohorts.includes('all') || selectedCohorts.includes(emp.cohort);
+        const deptMatch = selectedDepartments.includes('all') || selectedDepartments.includes(emp.department);
+        const hrbpMatch = selectedHRBPs.includes('all') || selectedHRBPs.includes(emp.hrbp);
+        const typeMatch = selectedTypes.includes('all') || selectedTypes.includes(emp.employeeType);
+        const levelMatch = selectedLevels.includes('all') || selectedLevels.includes(emp.level);
 
         return cohortMatch && deptMatch && hrbpMatch && typeMatch && levelMatch;
     });
@@ -249,14 +249,28 @@ function applyFilters() {
     calculateAndDisplayMetrics(startDate, endDate);
 }
 
+function getSelectedValues(selectId) {
+    const select = document.getElementById(selectId);
+    const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+    
+    // If nothing selected or "all" is selected, return ['all']
+    if (selected.length === 0 || selected.includes('all')) {
+        return ['all'];
+    }
+    
+    return selected;
+}
+
 // ========== COST CALCULATIONS ==========
 function calculateAndDisplayMetrics(startDate, endDate) {
     const currentDate = new Date();
-    const currentFY = getCurrentFY();
-    const fyStart = new Date(currentFY.start.year, currentFY.start.month, currentFY.start.day);
-    const fyEnd = new Date(currentFY.end.year, currentFY.end.month, currentFY.end.day);
     
-    // Headcounts
+    // Get current FY based on the end date selected
+    const selectedFY = getFYForDate(endDate);
+    const fyStart = selectedFY.start;
+    const fyEnd = selectedFY.end;
+    
+    // Headcounts - based on current actual date, not filter dates
     const currentHeadcount = filteredData.filter(e => 
         e.status === 'Active' && 
         e.dateOfJoining && 
@@ -267,10 +281,15 @@ function calculateAndDisplayMetrics(startDate, endDate) {
     const toBeHired = filteredData.filter(e => e.status === 'Planned').length;
     const totalHeadcount = currentHeadcount + toBeHired;
 
-    // Costs
+    // Monthly Cost - for current month
     const monthlyCost = calculateMonthlyCost(filteredData, currentDate);
-    const ytdCost = calculateYTDCost(filteredData, fyStart, currentDate);
-    const annualCost = calculateAnnualCost(filteredData, fyStart, fyEnd);
+    
+    // YTD Cost - from FY start to the SELECTED END DATE (not current date)
+    const ytdCost = calculateYTDCost(filteredData, fyStart, endDate);
+    
+    // Annual Cost - PROJECTED till end of FY (March 31)
+    // This includes actual cost till now + projected cost for remaining months
+    const annualCost = calculateAnnualProjectedCost(filteredData, fyStart, fyEnd, currentDate);
 
     // Update KPIs
     document.getElementById('currentHeadcount').textContent = currentHeadcount.toLocaleString();
@@ -280,10 +299,22 @@ function calculateAndDisplayMetrics(startDate, endDate) {
     document.getElementById('ytdCost').textContent = formatCurrency(ytdCost);
     document.getElementById('annualCost').textContent = formatCurrency(annualCost);
 
-    // Update tables
-    updateCohortTable(filteredData, fyStart, currentDate);
-    updateEmployeeTypeTable(filteredData, fyStart, currentDate);
-    updateLevelTable(filteredData, fyStart, currentDate);
+    // Debug logging
+    console.log('=== COST CALCULATION DEBUG ===');
+    console.log('FY Start:', fyStart.toDateString());
+    console.log('FY End:', fyEnd.toDateString());
+    console.log('Selected End Date:', endDate.toDateString());
+    console.log('Current Date:', currentDate.toDateString());
+    console.log('Monthly Cost:', monthlyCost);
+    console.log('YTD Cost (FY start to selected end date):', ytdCost);
+    console.log('Annual Cost (projected to FY end):', annualCost);
+    console.log('Filtered Employees Count:', filteredData.length);
+    console.log('==============================');
+
+    // Update tables - use endDate for YTD calculations
+    updateCohortTable(filteredData, fyStart, endDate, fyEnd);
+    updateEmployeeTypeTable(filteredData, fyStart, endDate, fyEnd);
+    updateLevelTable(filteredData, fyStart, endDate, fyEnd);
 
     // Update FY chart
     updateFYChart();
@@ -336,12 +367,49 @@ function calculateYTDCost(employees, fyStart, endDate) {
     return totalCost;
 }
 
+function calculateAnnualProjectedCost(employees, fyStart, fyEnd, currentDate) {
+    // Calculate actual cost from FY start till current date
+    const actualCost = calculateYTDCost(employees, fyStart, currentDate);
+    
+    // Calculate projected cost from current date till FY end
+    let projectedCost = 0;
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    const endYear = fyEnd.getFullYear();
+    const endMonth = fyEnd.getMonth();
+    
+    // Get current active employees for projection
+    const activeEmployees = employees.filter(emp => {
+        return emp.status === 'Active' && 
+               emp.dateOfJoining && 
+               emp.dateOfJoining <= currentDate &&
+               (!emp.dateOfLeaving || emp.dateOfLeaving >= currentDate);
+    });
+    
+    // Project remaining months using current active headcount
+    for (let year = currentYear; year <= endYear; year++) {
+        const firstMonth = (year === currentYear) ? currentMonth + 1 : 0;
+        const lastMonth = (year === endYear) ? endMonth : 11;
+
+        for (let month = firstMonth; month <= lastMonth; month++) {
+            // Use current employee salaries for projection
+            activeEmployees.forEach(emp => {
+                projectedCost += emp.annualCTC / 12;
+            });
+        }
+    }
+    
+    return actualCost + projectedCost;
+}
+
 function calculateAnnualCost(employees, fyStart, fyEnd) {
+    // This is the historical/actual annual cost for a completed FY
     return calculateYTDCost(employees, fyStart, fyEnd);
 }
 
 // ========== TABLES ==========
-function updateCohortTable(employees, fyStart, currentDate) {
+function updateCohortTable(employees, fyStart, endDate, fyEnd) {
+    const currentDate = new Date();
     const cohortData = {};
 
     employees.forEach(emp => {
@@ -358,9 +426,8 @@ function updateCohortTable(employees, fyStart, currentDate) {
     Object.keys(cohortData).sort().forEach(cohort => {
         const data = cohortData[cohort];
         const monthlyCost = calculateMonthlyCost(data.employees, currentDate);
-        const ytdCost = calculateYTDCost(data.employees, fyStart, currentDate);
-        const fyEnd = new Date(fyStart.getFullYear() + 1, 2, 31);
-        const annualCost = calculateAnnualCost(data.employees, fyStart, fyEnd);
+        const ytdCost = calculateYTDCost(data.employees, fyStart, endDate);
+        const annualCost = calculateAnnualProjectedCost(data.employees, fyStart, fyEnd, currentDate);
 
         const row = tbody.insertRow();
         row.innerHTML = `
@@ -373,42 +440,46 @@ function updateCohortTable(employees, fyStart, currentDate) {
     });
 }
 
-function updateEmployeeTypeTable(employees, fyStart, currentDate) {
+function updateEmployeeTypeTable(employees, fyStart, endDate, fyEnd) {
+    const currentDate = new Date();
     const typeData = {};
 
+    // Initialize all three types
+    ['Management', 'Non-Management', 'Consultant'].forEach(type => {
+        typeData[type] = { headcount: 0, employees: [] };
+    });
+
+    // Populate with actual data
     employees.forEach(emp => {
-        if (!typeData[emp.employeeType]) {
-            typeData[emp.employeeType] = { headcount: 0, employees: [] };
+        if (typeData[emp.employeeType]) {
+            typeData[emp.employeeType].headcount++;
+            typeData[emp.employeeType].employees.push(emp);
         }
-        typeData[emp.employeeType].headcount++;
-        typeData[emp.employeeType].employees.push(emp);
     });
 
     const tbody = document.querySelector('#employeeTypeTable tbody');
     tbody.innerHTML = '';
 
-    const typeOrder = ['Management', 'Non-Management', 'Consultant'];
-    typeOrder.forEach(type => {
-        if (typeData[type]) {
-            const data = typeData[type];
-            const monthlyCost = calculateMonthlyCost(data.employees, currentDate);
-            const ytdCost = calculateYTDCost(data.employees, fyStart, currentDate);
-            const fyEnd = new Date(fyStart.getFullYear() + 1, 2, 31);
-            const annualCost = calculateAnnualCost(data.employees, fyStart, fyEnd);
+    // Show all types even if headcount is 0
+    ['Management', 'Non-Management', 'Consultant'].forEach(type => {
+        const data = typeData[type];
+        const monthlyCost = data.employees.length > 0 ? calculateMonthlyCost(data.employees, currentDate) : 0;
+        const ytdCost = data.employees.length > 0 ? calculateYTDCost(data.employees, fyStart, endDate) : 0;
+        const annualCost = data.employees.length > 0 ? calculateAnnualProjectedCost(data.employees, fyStart, fyEnd, currentDate) : 0;
 
-            const row = tbody.insertRow();
-            row.innerHTML = `
-                <td>${type}</td>
-                <td>${data.headcount}</td>
-                <td>${formatCurrency(monthlyCost)}</td>
-                <td>${formatCurrency(ytdCost)}</td>
-                <td>${formatCurrency(annualCost)}</td>
-            `;
-        }
+        const row = tbody.insertRow();
+        row.innerHTML = `
+            <td>${type}</td>
+            <td>${data.headcount}</td>
+            <td>${formatCurrency(monthlyCost)}</td>
+            <td>${formatCurrency(ytdCost)}</td>
+            <td>${formatCurrency(annualCost)}</td>
+        `;
     });
 }
 
-function updateLevelTable(employees, fyStart, currentDate) {
+function updateLevelTable(employees, fyStart, endDate, fyEnd) {
+    const currentDate = new Date();
     const levelData = {};
 
     employees.forEach(emp => {
@@ -425,9 +496,8 @@ function updateLevelTable(employees, fyStart, currentDate) {
     Object.keys(levelData).sort().forEach(level => {
         const data = levelData[level];
         const monthlyCost = calculateMonthlyCost(data.employees, currentDate);
-        const ytdCost = calculateYTDCost(data.employees, fyStart, currentDate);
-        const fyEnd = new Date(fyStart.getFullYear() + 1, 2, 31);
-        const annualCost = calculateAnnualCost(data.employees, fyStart, fyEnd);
+        const ytdCost = calculateYTDCost(data.employees, fyStart, endDate);
+        const annualCost = calculateAnnualProjectedCost(data.employees, fyStart, fyEnd, currentDate);
 
         const row = tbody.insertRow();
         row.innerHTML = `
@@ -526,8 +596,8 @@ function showDepartmentView(fyStartYear) {
     const fyStart = new Date(fyStartYear, 3, 1);
     const fyEnd = new Date(fyStartYear + 1, 2, 31);
     
-    // Filter employees active in this FY
-    const fyEmployees = employeeData.filter(emp => {
+    // Use filteredData (respects current filters), not all employeeData
+    const fyEmployees = filteredData.filter(emp => {
         if (!emp.dateOfJoining) return false;
         return emp.dateOfJoining <= fyEnd && (!emp.dateOfLeaving || emp.dateOfLeaving >= fyStart);
     });
@@ -535,14 +605,16 @@ function showDepartmentView(fyStartYear) {
     // Group by department
     const deptData = {};
     fyEmployees.forEach(emp => {
-        if (!deptData[emp.department]) {
-            deptData[emp.department] = [];
+        const dept = emp.department || 'Unassigned';
+        if (!deptData[dept]) {
+            deptData[dept] = [];
         }
-        deptData[emp.department].push(emp);
+        deptData[dept].push(emp);
     });
     
     const departments = Object.keys(deptData).sort();
     const costs = departments.map(dept => {
+        // Calculate actual cost for this FY
         const cost = calculateAnnualCost(deptData[dept], fyStart, fyEnd);
         return cost / 10000000; // Convert to Cr
     });
