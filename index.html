@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sabyasachi - Manpower Cost Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <h1 class="brand-title">Sabyasachi</h1>
+                <p class="subtitle">Manpower Cost Analytics</p>
+            </div>
+            <div class="header-actions">
+                <div class="upload-section">
+                    <label for="fileInput" class="upload-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Upload Excel Data
+                    </label>
+                    <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+                </div>
+                <span id="lastUpdated" class="last-updated"></span>
+            </div>
+        </header>
+
+        <!-- Filters Section -->
+        <section class="filters-section">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label>Cohort</label>
+                    <select id="cohortFilter" multiple>
+                        <option value="all">All Cohorts</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Department</label>
+                    <select id="departmentFilter" multiple>
+                        <option value="all">All Departments</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>HRBP</label>
+                    <select id="hrbpFilter" multiple>
+                        <option value="all">All HRBPs</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Employee Type</label>
+                    <select id="employeeTypeFilter" multiple>
+                        <option value="all">All Types</option>
+                        <option value="Management Cadre">Management Cadre</option>
+                        <option value="Non-Management Cadre">Non-Management Cadre</option>
+                        <option value="Consultant">Consultant</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Level</label>
+                    <select id="levelFilter" multiple>
+                        <option value="all">All Levels</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Date Range</label>
+                    <div class="date-inputs">
+                        <input type="date" id="startDate">
+                        <span>to</span>
+                        <input type="date" id="endDate">
+                    </div>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button id="applyFilters" class="btn-primary">Apply Filters</button>
+                <button id="resetFilters" class="btn-secondary">Reset</button>
+            </div>
+        </section>
+
+        <!-- KPI Cards -->
+        <section class="kpi-section">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-icon">👥</div>
+                    <div class="kpi-content">
+                        <h3>Current Headcount</h3>
+                        <p class="kpi-value" id="currentHeadcount">-</p>
+                        <span class="kpi-label">Active Employees</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">📊</div>
+                    <div class="kpi-content">
+                        <h3>To Be Hired</h3>
+                        <p class="kpi-value" id="toBeHired">-</p>
+                        <span class="kpi-label">Planned Vacancies</span>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-icon">∑</div>
+                    <div class="kpi-content">
+                        <h3>Total Headcount</h3>
+                        <p class="kpi-value" id="totalHeadcount">-</p>
+                        <span class="kpi-label">Current + Planned</span>
+                    </div>
+                </div>
+                <div class="kpi-card highlight">
+                    <div class="kpi-icon">₹</div>
+                    <div class="kpi-content">
+                        <h3>Monthly Cost</h3>
+                        <p class="kpi-value" id="monthlyCost">-</p>
+                        <span class="kpi-label">Average per month</span>
+                    </div>
+                </div>
+                <div class="kpi-card highlight">
+                    <div class="kpi-icon">📅</div>
+                    <div class="kpi-content">
+                        <h3>YTD Cost</h3>
+                        <p class="kpi-value" id="ytdCost">-</p>
+                        <span class="kpi-label">Year to date</span>
+                    </div>
+                </div>
+                <div class="kpi-card highlight">
+                    <div class="kpi-icon">📈</div>
+                    <div class="kpi-content">
+                        <h3>Annual Cost</h3>
+                        <p class="kpi-value" id="annualCost">-</p>
+                        <span class="kpi-label">Full year projection</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Breakdown Tables -->
+        <section class="tables-section">
+            <div class="table-container">
+                <h2>Cost Breakdown by Department</h2>
+                <div class="table-wrapper">
+                    <table id="departmentTable">
+                        <thead>
+                            <tr>
+                                <th>Department</th>
+                                <th>Headcount</th>
+                                <th>Monthly Cost</th>
+                                <th>YTD Cost</th>
+                                <th>Annual Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <h2>Cost Breakdown by Employee Type</h2>
+                <div class="table-wrapper">
+                    <table id="employeeTypeTable">
+                        <thead>
+                            <tr>
+                                <th>Employee Type</th>
+                                <th>Headcount</th>
+                                <th>Monthly Cost</th>
+                                <th>YTD Cost</th>
+                                <th>Annual Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chart Section -->
+        <section class="chart-section">
+            <div class="chart-container">
+                <h2>Year-on-Year FY Cost Trend</h2>
+                <canvas id="fyTrendChart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
