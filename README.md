@@ -1,8 +1,14 @@
-# Sabyasachi HR Manpower Cost Dashboard
+# Manpower Cost Dashboard
 
-A sophisticated web-based dashboard for tracking and analyzing manpower costs across the organization.
+A clean, professional web-based dashboard for tracking and analyzing manpower costs across the organization with secure authentication and role-based access control.
 
 ## Features
+
+### 🔐 Secure Authentication
+- Login system with email and password
+- Role-based access control (Admin / User)
+- Admin-only data upload permissions
+- Session management
 
 ### 📊 Cost Analytics
 - **Monthly Cost**: Current month's manpower expenditure
@@ -28,7 +34,27 @@ Filter data by:
 ### 📈 Visualizations
 - Department-wise cost breakdown
 - Employee type analysis
-- Year-on-year FY cost trends
+- Year-on-year FY cost trends (April-March fiscal year)
+- **Interactive charts**: Click any FY column to see department-wise breakdown
+- Drill-down from FY overview to department details
+
+### 🎨 Clean Design
+- Minimalist black and white interface
+- Single-line filters for quick access
+- Compact tables for easy scanning
+- Responsive design for all devices
+
+## Default Login Credentials
+
+**Admin Account** (Can upload data):
+- Email: `admin@sabyasachi.com`
+- Password: `admin123`
+
+**User Accounts** (View-only):
+- Email: `user1@sabyasachi.com` / Password: `user123`
+- Email: `user2@sabyasachi.com` / Password: `user123`
+
+**IMPORTANT**: Change these credentials in the `script.js` file before deploying to production!
 
 ## Excel Data Format
 
@@ -41,11 +67,11 @@ Your Excel file should contain the following columns:
 | Cohort | Employee cohort/batch | 2023-A |
 | Department | Department name | Design |
 | HRBP | HRBP name | Priya Sharma |
-| Employee Type | Management Cadre / Non-Management Cadre / Consultant | Management Cadre |
+| Employee Type | Management / Non-Management / Consultant | Management |
 | Level | Employee level | L3, Senior Manager, etc. |
-| Date of Joining | Join date (DD/MM/YYYY or YYYY-MM-DD) | 2023-07-15 |
-| Date of Leaving | Leave date (blank if active) | 2025-12-31 |
-| Annual CTC | Annual compensation in INR | 1200000 |
+| Date of Joining | Join date (DD MMM YYYY or YYYY-MM-DD) | 08 Jul 2009 |
+| Date of Leaving | Leave date (blank if active) | 31 Dec 2025 |
+| Annual CTC | Annual compensation in INR | 627700 |
 | Status | Active / Inactive / Planned | Active |
 
 ### Important Notes:
@@ -74,6 +100,7 @@ Your Excel file should contain the following columns:
 - Formula: `(Annual CTC / 12) × Months Active`
 
 ### Important Considerations
+- **Fiscal Year**: FY runs from April 1 to March 31 (e.g., FY 2024-25 = Apr 1, 2024 to Mar 31, 2025)
 - **Salary Changes**: Since appraisals occur in January and July, upload updated Excel files after each appraisal cycle
 - **Unique Employee Code**: Used to track employees across salary revisions
 - **Prorated Costs**: System automatically calculates partial month costs for joiners/leavers
@@ -132,11 +159,27 @@ Your dashboard will be live at:
 
 ## Usage Instructions
 
-### First Time Setup
+### Logging In
 1. Open the dashboard URL
-2. Click "Upload Excel Data"
-3. Select your employee data Excel file
-4. Dashboard will automatically populate
+2. Enter your email and password
+3. Click "Login"
+
+### For Admin Users
+1. After logging in, you'll see the "Upload Data" button in the header
+2. Click "Upload Data" to select and upload Excel file
+3. Dashboard will automatically refresh with new data
+
+### For Regular Users
+1. View all dashboard metrics and charts
+2. Use filters to analyze specific segments
+3. Click on FY chart columns to see department breakdown
+4. Cannot upload data (admin-only feature)
+
+### Using the Dashboard
+1. **Filters**: Select options from the single-line filter bar - changes apply automatically
+2. **FY Chart Interaction**: Click any column in the Year-on-Year chart to view department-wise breakdown for that FY
+3. **Back Navigation**: Click "Back to FY Overview" to return from department view
+4. **Tables**: Scroll through compact tables for Cohort, Employee Type, and Level breakdowns
 
 ### Monthly Updates
 1. Prepare updated Excel file with:
@@ -146,23 +189,22 @@ Your dashboard will be live at:
    - New planned hires
 2. Upload the file to refresh all metrics
 
-### Using Filters
-1. Select desired filter criteria (you can select multiple values)
-2. Click "Apply Filters"
-3. Dashboard updates in real-time
-4. Click "Reset" to clear all filters
-
 ## Security Considerations
 
 ⚠️ **Important Security Notes:**
 
-1. **Data Privacy**: This dashboard runs entirely in the browser. Your data is NOT sent to any server.
-2. **Public Repository**: Since the code is on a public GitHub repo, do NOT hardcode any sensitive data in the files.
-3. **Excel Upload**: Upload files locally each time - they are not stored anywhere.
-4. **Sensitive Data**: For highly sensitive salary data, consider:
+1. **Change Default Passwords**: Edit `script.js` and change the default credentials before deploying
+2. **Data Privacy**: This dashboard runs entirely in the browser. Your data is NOT sent to any server.
+3. **Session Storage**: Login sessions are stored in browser session storage (cleared when browser closes)
+4. **Public Repository**: Since the code is on a public GitHub repo, do NOT hardcode any sensitive data in the files.
+5. **Excel Upload**: Upload files locally each time - they are not stored anywhere.
+6. **Access Control**: Only admin@sabyasachi.com can upload data; other users are view-only
+7. **For Production**: Consider:
+   - Implementing server-side authentication
+   - Using environment variables for credentials
    - Making the repository private (requires GitHub Pro)
    - Hosting on internal servers instead
-   - Adding password protection
+   - Adding password encryption
 
 ## Browser Compatibility
 
@@ -223,6 +265,16 @@ For issues or questions:
 
 ## Version History
 
+**v2.0.0** - Major Redesign
+- Clean black & white minimalist design
+- Login/authentication system with role-based access
+- Admin-only data upload controls
+- Interactive FY charts with department drill-down
+- Fiscal year calculations (April-March)
+- Single-line filter bar
+- Compact tables (Cohort, Employee Type, Level)
+- Auto-applying filters
+
 **v1.0.0** - Initial Release
 - Core dashboard functionality
 - Excel upload and parsing
@@ -232,4 +284,4 @@ For issues or questions:
 
 ---
 
-Built with care for Sabyasachi HR Team 🎨
+Built for Sabyasachi HR Team 🎨

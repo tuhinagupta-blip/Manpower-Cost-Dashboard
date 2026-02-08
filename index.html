@@ -3,83 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sabyasachi - Manpower Cost Dashboard</title>
+    <title>Manpower Cost Dashboard - Sabyasachi</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>Manpower Cost Dashboard</h1>
+                <p>Sabyasachi</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit" class="login-btn">Login</button>
+                <div id="loginError" class="error-message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="mainDashboard" class="dashboard-container" style="display: none;">
         <!-- Header -->
         <header class="dashboard-header">
-            <div class="header-content">
-                <h1 class="brand-title">Sabyasachi</h1>
-                <p class="subtitle">Manpower Cost Analytics</p>
+            <div class="header-left">
+                <div class="user-welcome">
+                    <h2>Welcome, <span id="userName">User</span></h2>
+                    <p class="status-badge">Live Data Active</p>
+                </div>
             </div>
-            <div class="header-actions">
-                <div class="upload-section">
+            <div class="header-right">
+                <div id="uploadSection" class="upload-section" style="display: none;">
                     <label for="fileInput" class="upload-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="17 8 12 3 7 8"></polyline>
                             <line x1="12" y1="3" x2="12" y2="15"></line>
                         </svg>
-                        Upload Excel Data
+                        Upload Data
                     </label>
                     <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
                 </div>
                 <span id="lastUpdated" class="last-updated"></span>
+                <button id="logoutBtn" class="logout-btn">Logout</button>
             </div>
         </header>
 
-        <!-- Filters Section -->
+        <!-- Filters Section - Single Line -->
         <section class="filters-section">
-            <div class="filters-grid">
-                <div class="filter-group">
-                    <label>Cohort</label>
-                    <select id="cohortFilter" multiple>
-                        <option value="all">All Cohorts</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Department</label>
-                    <select id="departmentFilter" multiple>
-                        <option value="all">All Departments</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>HRBP</label>
-                    <select id="hrbpFilter" multiple>
-                        <option value="all">All HRBPs</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Employee Type</label>
-                    <select id="employeeTypeFilter" multiple>
-                        <option value="all">All Types</option>
-                        <option value="Management Cadre">Management Cadre</option>
-                        <option value="Non-Management Cadre">Non-Management Cadre</option>
-                        <option value="Consultant">Consultant</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Level</label>
-                    <select id="levelFilter" multiple>
-                        <option value="all">All Levels</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>Date Range</label>
-                    <div class="date-inputs">
-                        <input type="date" id="startDate">
-                        <span>to</span>
-                        <input type="date" id="endDate">
-                    </div>
-                </div>
-            </div>
-            <div class="filter-actions">
-                <button id="applyFilters" class="btn-primary">Apply Filters</button>
-                <button id="resetFilters" class="btn-secondary">Reset</button>
+            <div class="filters-row">
+                <select id="cohortFilter">
+                    <option value="all">All Cohorts</option>
+                </select>
+                <select id="departmentFilter">
+                    <option value="all">All Departments</option>
+                </select>
+                <select id="hrbpFilter">
+                    <option value="all">All HRBPs</option>
+                </select>
+                <select id="employeeTypeFilter">
+                    <option value="all">All Types</option>
+                    <option value="Management">Management</option>
+                    <option value="Non-Management">Non-Management</option>
+                    <option value="Consultant">Consultant</option>
+                </select>
+                <select id="levelFilter">
+                    <option value="all">All Levels</option>
+                </select>
+                <input type="date" id="startDate" class="date-input">
+                <span class="date-separator">to</span>
+                <input type="date" id="endDate" class="date-input">
             </div>
         </section>
 
@@ -87,100 +89,110 @@
         <section class="kpi-section">
             <div class="kpi-grid">
                 <div class="kpi-card">
-                    <div class="kpi-icon">👥</div>
-                    <div class="kpi-content">
-                        <h3>Current Headcount</h3>
-                        <p class="kpi-value" id="currentHeadcount">-</p>
-                        <span class="kpi-label">Active Employees</span>
-                    </div>
+                    <div class="kpi-label">CURRENT HC</div>
+                    <div class="kpi-value" id="currentHeadcount">-</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-icon">📊</div>
-                    <div class="kpi-content">
-                        <h3>To Be Hired</h3>
-                        <p class="kpi-value" id="toBeHired">-</p>
-                        <span class="kpi-label">Planned Vacancies</span>
-                    </div>
+                    <div class="kpi-label">TO BE HIRED</div>
+                    <div class="kpi-value" id="toBeHired">-</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-icon">∑</div>
-                    <div class="kpi-content">
-                        <h3>Total Headcount</h3>
-                        <p class="kpi-value" id="totalHeadcount">-</p>
-                        <span class="kpi-label">Current + Planned</span>
-                    </div>
+                    <div class="kpi-label">TOTAL HC</div>
+                    <div class="kpi-value" id="totalHeadcount">-</div>
                 </div>
-                <div class="kpi-card highlight">
-                    <div class="kpi-icon">₹</div>
-                    <div class="kpi-content">
-                        <h3>Monthly Cost</h3>
-                        <p class="kpi-value" id="monthlyCost">-</p>
-                        <span class="kpi-label">Average per month</span>
-                    </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">MONTHLY COST</div>
+                    <div class="kpi-value" id="monthlyCost">-</div>
                 </div>
-                <div class="kpi-card highlight">
-                    <div class="kpi-icon">📅</div>
-                    <div class="kpi-content">
-                        <h3>YTD Cost</h3>
-                        <p class="kpi-value" id="ytdCost">-</p>
-                        <span class="kpi-label">Year to date</span>
-                    </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">YTD COST</div>
+                    <div class="kpi-value" id="ytdCost">-</div>
                 </div>
-                <div class="kpi-card highlight">
-                    <div class="kpi-icon">📈</div>
-                    <div class="kpi-content">
-                        <h3>Annual Cost</h3>
-                        <p class="kpi-value" id="annualCost">-</p>
-                        <span class="kpi-label">Full year projection</span>
-                    </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">ANNUAL COST</div>
+                    <div class="kpi-value" id="annualCost">-</div>
                 </div>
             </div>
         </section>
 
-        <!-- Breakdown Tables -->
+        <!-- Main View: FY Chart or Department Details -->
+        <section class="main-view">
+            <!-- FY Overview -->
+            <div id="fyView" class="view-panel active">
+                <div class="section-header">
+                    <h2>Year-on-Year FY Cost Trend</h2>
+                    <p class="hint">Click on any FY column to view department-wise breakdown</p>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="fyTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Department Details View -->
+            <div id="deptView" class="view-panel">
+                <div class="section-header">
+                    <button id="backToFY" class="back-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                        Back to FY Overview
+                    </button>
+                    <h2 id="deptViewTitle">Department-wise Cost: FY 2024-25</h2>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compact Tables -->
         <section class="tables-section">
             <div class="table-container">
-                <h2>Cost Breakdown by Department</h2>
-                <div class="table-wrapper">
-                    <table id="departmentTable">
-                        <thead>
-                            <tr>
-                                <th>Department</th>
-                                <th>Headcount</th>
-                                <th>Monthly Cost</th>
-                                <th>YTD Cost</th>
-                                <th>Annual Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+                <h3>Cost by Cohort</h3>
+                <table id="cohortTable">
+                    <thead>
+                        <tr>
+                            <th>Cohort</th>
+                            <th>HC</th>
+                            <th>Monthly</th>
+                            <th>YTD</th>
+                            <th>Annual</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
 
             <div class="table-container">
-                <h2>Cost Breakdown by Employee Type</h2>
-                <div class="table-wrapper">
-                    <table id="employeeTypeTable">
-                        <thead>
-                            <tr>
-                                <th>Employee Type</th>
-                                <th>Headcount</th>
-                                <th>Monthly Cost</th>
-                                <th>YTD Cost</th>
-                                <th>Annual Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+                <h3>Cost by Employee Type</h3>
+                <table id="employeeTypeTable">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>HC</th>
+                            <th>Monthly</th>
+                            <th>YTD</th>
+                            <th>Annual</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-        </section>
 
-        <!-- Chart Section -->
-        <section class="chart-section">
-            <div class="chart-container">
-                <h2>Year-on-Year FY Cost Trend</h2>
-                <canvas id="fyTrendChart"></canvas>
+            <div class="table-container">
+                <h3>Cost by Level</h3>
+                <table id="levelTable">
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>HC</th>
+                            <th>Monthly</th>
+                            <th>YTD</th>
+                            <th>Annual</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </section>
     </div>
