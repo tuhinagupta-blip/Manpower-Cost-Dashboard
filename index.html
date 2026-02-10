@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manpower Cost Dashboard - Sabyasachi</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -61,23 +64,23 @@
         <!-- Filters Section - Single Line -->
         <section class="filters-section">
             <div class="filters-row">
-                <select id="cohortFilter" multiple size="1">
-                    <option value="all" selected>All Cohorts</option>
+                <select id="cohortFilter" class="filter-select" multiple>
+                    <option value="all">All Cohorts</option>
                 </select>
-                <select id="departmentFilter" multiple size="1">
-                    <option value="all" selected>All Departments</option>
+                <select id="departmentFilter" class="filter-select" multiple>
+                    <option value="all">All Departments</option>
                 </select>
-                <select id="hrbpFilter" multiple size="1">
-                    <option value="all" selected>All HRBPs</option>
+                <select id="hrbpFilter" class="filter-select" multiple>
+                    <option value="all">All HRBPs</option>
                 </select>
-                <select id="employeeTypeFilter" multiple size="1">
-                    <option value="all" selected>All Types</option>
+                <select id="employeeTypeFilter" class="filter-select" multiple>
+                    <option value="all">All Types</option>
                     <option value="Management">Management</option>
                     <option value="Non-Management">Non-Management</option>
                     <option value="Consultant">Consultant</option>
                 </select>
-                <select id="levelFilter" multiple size="1">
-                    <option value="all" selected>All Levels</option>
+                <select id="levelFilter" class="filter-select" multiple>
+                    <option value="all">All Levels</option>
                 </select>
                 <input type="date" id="startDate" class="date-input">
                 <span class="date-separator">to</span>
@@ -85,9 +88,9 @@
             </div>
         </section>
 
-        <!-- KPI Cards -->
+        <!-- KPI Cards - All in One Row -->
         <section class="kpi-section">
-            <div class="kpi-grid">
+            <div class="kpi-row">
                 <div class="kpi-card">
                     <div class="kpi-label">CURRENT HC</div>
                     <div class="kpi-value" id="currentHeadcount">-</div>
@@ -137,7 +140,7 @@
                         </svg>
                         Back to FY Overview
                     </button>
-                    <h2 id="deptViewTitle">Department-wise Cost: FY 2024-25</h2>
+                    <h2 id="deptViewTitle">Department-wise Cost</h2>
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="deptChart"></canvas>
@@ -152,11 +155,11 @@
                 <table id="cohortTable">
                     <thead>
                         <tr>
-                            <th>Cohort</th>
+                            <th>TYPE</th>
                             <th>HC</th>
-                            <th>Monthly</th>
+                            <th>MONTHLY</th>
                             <th>YTD</th>
-                            <th>Annual</th>
+                            <th>ANNUAL</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -168,11 +171,11 @@
                 <table id="employeeTypeTable">
                     <thead>
                         <tr>
-                            <th>Type</th>
+                            <th>TYPE</th>
                             <th>HC</th>
-                            <th>Monthly</th>
+                            <th>MONTHLY</th>
                             <th>YTD</th>
-                            <th>Annual</th>
+                            <th>ANNUAL</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -184,11 +187,11 @@
                 <table id="levelTable">
                     <thead>
                         <tr>
-                            <th>Level</th>
+                            <th>TYPE</th>
                             <th>HC</th>
-                            <th>Monthly</th>
+                            <th>MONTHLY</th>
                             <th>YTD</th>
-                            <th>Annual</th>
+                            <th>ANNUAL</th>
                         </tr>
                     </thead>
                     <tbody></tbody>

@@ -1,4 +1,4 @@
-// ========== AUTHENTICATION SYSTEM ==========
+// ========== AUTHENTICATION ==========
 const USERS = {
     'admin@sabyasachi.com': { password: 'admin123', name: 'Admin', role: 'admin' },
     'user1@sabyasachi.com': { password: 'user123', name: 'User 1', role: 'user' },
@@ -8,15 +8,9 @@ const USERS = {
 let currentUser = null;
 let employeeData = [];
 let filteredData = [];
-let selectedFY = null;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-});
-
-function initializeApp() {
-    // Check if user is already logged in
     const savedUser = sessionStorage.getItem('currentUser');
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
@@ -25,17 +19,11 @@ function initializeApp() {
         showLogin();
     }
     
-    // Set up event listeners
     document.getElementById('loginForm').addEventListener('submit', handleLogin);
     document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     document.getElementById('fileInput').addEventListener('change', handleFileUpload);
     document.getElementById('backToFY').addEventListener('click', showFYView);
-    
-    // Filters auto-apply on change
-    ['cohortFilter', 'departmentFilter', 'hrbpFilter', 'employeeTypeFilter', 'levelFilter', 'startDate', 'endDate'].forEach(id => {
-        document.getElementById(id).addEventListener('change', applyFilters);
-    });
-}
+});
 
 function handleLogin(e) {
     e.preventDefault();
@@ -47,7 +35,7 @@ function handleLogin(e) {
         sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
         showDashboard();
     } else {
-        document.getElementById('loginError').textContent = 'Invalid email or password';
+        document.getElementById('loginError').textContent = 'Invalid credentials';
         document.getElementById('loginError').style.display = 'block';
     }
 }
@@ -68,55 +56,37 @@ function showDashboard() {
     document.getElementById('mainDashboard').style.display = 'block';
     document.getElementById('userName').textContent = currentUser.name;
     
-    // Show upload button only for admin
     if (currentUser.role === 'admin') {
         document.getElementById('uploadSection').style.display = 'block';
-    } else {
-        document.getElementById('uploadSection').style.display = 'none';
     }
     
-    setDefaultDates();
-}
-
-function setDefaultDates() {
-    const today = new Date();
-    const currentFY = getCurrentFY();
+    // Initialize Select2 for multi-select
+    $('.filter-select').select2({
+        placeholder: 'Select options',
+        allowClear: true,
+        width: '100%'
+    });
     
-    document.getElementById('startDate').value = `${currentFY.start.year}-04-01`;
+    // Set default dates
+    const today = new Date();
+    const fyStart = getFYStart(today);
+    document.getElementById('startDate').value = `${fyStart.getFullYear()}-04-01`;
     document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    
+    // Add change listeners
+    $('.filter-select, #startDate, #endDate').on('change', applyFilters);
 }
 
-// ========== FISCAL YEAR UTILITIES ==========
-function getCurrentFY() {
-    const today = new Date();
-    const currentMonth = today.getMonth(); // 0-11
-    const currentYear = today.getFullYear();
-    
-    // If current month is Jan-Mar (0-2), FY started last year
-    // If current month is Apr-Dec (3-11), FY started this year
-    const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
-    const fyEndYear = fyStartYear + 1;
-    
-    return {
-        start: { year: fyStartYear, month: 3, day: 1 }, // April 1
-        end: { year: fyEndYear, month: 2, day: 31 }, // March 31
-        label: `FY ${fyStartYear}-${fyEndYear.toString().slice(-2)}`
-    };
-}
-
-function getFYForDate(date) {
+// ========== FY UTILITIES ==========
+function getFYStart(date) {
     const month = date.getMonth();
     const year = date.getFullYear();
-    
-    const fyStartYear = month < 3 ? year - 1 : year;
-    const fyEndYear = fyStartYear + 1;
-    
-    return {
-        start: new Date(fyStartYear, 3, 1), // April 1
-        end: new Date(fyEndYear, 2, 31), // March 31
-        label: `FY ${fyStartYear}-${fyEndYear.toString().slice(-2)}`,
-        startYear: fyStartYear
-    };
+    return new Date(month < 3 ? year - 1 : year, 3, 1);
+}
+
+function getFYEnd(date) {
+    const fyStart = getFYStart(date);
+    return new Date(fyStart.getFullYear() + 1, 2, 31);
 }
 
 // ========== FILE UPLOAD ==========
@@ -129,8 +99,8 @@ function handleFileUpload(event) {
         try {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
             
             processEmployeeData(jsonData);
             updateLastUpdated();
@@ -143,26 +113,21 @@ function handleFileUpload(event) {
 
 function processEmployeeData(rawData) {
     employeeData = rawData.map(row => {
-        // Parse Annual CTC - remove commas and convert to number
-        let ctcValue = row['Annual CTC'] || row['annual_ctc'] || 0;
-        if (typeof ctcValue === 'string') {
-            ctcValue = parseFloat(ctcValue.replace(/,/g, ''));
-        } else {
-            ctcValue = parseFloat(ctcValue);
-        }
+        let ctc = row['Annual CTC'] || row['annual_ctc'] || 0;
+        if (typeof ctc === 'string') ctc = parseFloat(ctc.replace(/,/g, ''));
         
         return {
-            employeeCode: row['Employee Code'] || row['employee_code'] || '',
-            name: row['Name'] || row['name'] || '',
-            cohort: row['Cohort'] || row['cohort'] || '',
-            department: row['Department'] || row['department'] || '',
-            hrbp: row['HRBP'] || row['hrbp'] || '',
-            employeeType: row['Employee Type'] || row['employee_type'] || '',
-            level: row['Level'] || row['level'] || '',
-            dateOfJoining: parseDate(row['Date of Joining'] || row['date_of_joining']),
-            dateOfLeaving: parseDate(row['Date of Leaving'] || row['date_of_leaving']),
-            annualCTC: ctcValue,
-            status: row['Status'] || row['status'] || 'Active'
+            employeeCode: row['Employee Code'] || '',
+            name: row['Name'] || '',
+            cohort: row['Cohort'] || '',
+            department: row['Department'] || '',
+            hrbp: row['HRBP'] || '',
+            employeeType: row['Employee Type'] || '',
+            level: row['Level'] || '',
+            dateOfJoining: parseDate(row['Date of Joining']),
+            dateOfLeaving: parseDate(row['Date of Leaving']),
+            annualCTC: parseFloat(ctc),
+            status: row['Status'] || 'Active'
         };
     });
 
@@ -173,30 +138,16 @@ function processEmployeeData(rawData) {
 function parseDate(dateStr) {
     if (!dateStr) return null;
     
-    // Handle various date formats
-    // Try direct parsing first
     let date = new Date(dateStr);
-    
-    // If invalid, try DD MMM YYYY format (e.g., "08 Jul 2009")
     if (isNaN(date.getTime())) {
         const parts = dateStr.toString().trim().split(/[\s-/]+/);
         if (parts.length === 3) {
-            const months = {
-                'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
-                'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
-            };
-            
-            // Try DD MMM YYYY
+            const months = {'Jan':0,'Feb':1,'Mar':2,'Apr':3,'May':4,'Jun':5,'Jul':6,'Aug':7,'Sep':8,'Oct':9,'Nov':10,'Dec':11};
             if (months[parts[1]] !== undefined) {
                 date = new Date(parseInt(parts[2]), months[parts[1]], parseInt(parts[0]));
             }
-            // Try YYYY MMM DD
-            else if (months[parts[1]] !== undefined) {
-                date = new Date(parseInt(parts[0]), months[parts[1]], parseInt(parts[2]));
-            }
         }
     }
-    
     return isNaN(date.getTime()) ? null : date;
 }
 
@@ -206,443 +157,293 @@ function populateFilters() {
     const hrbps = [...new Set(employeeData.map(e => e.hrbp).filter(Boolean))];
     const levels = [...new Set(employeeData.map(e => e.level).filter(Boolean))];
 
-    populateSelect('cohortFilter', cohorts);
-    populateSelect('departmentFilter', departments);
-    populateSelect('hrbpFilter', hrbps);
-    populateSelect('levelFilter', levels);
-}
-
-function populateSelect(selectId, options) {
-    const select = document.getElementById(selectId);
-    const allOption = select.querySelector('option[value="all"]');
-    select.innerHTML = '';
-    if (allOption) select.appendChild(allOption);
-    
-    options.sort().forEach(option => {
-        const opt = document.createElement('option');
-        opt.value = option;
-        opt.textContent = option;
-        select.appendChild(opt);
-    });
+    $('#cohortFilter').html('<option value="all">All Cohorts</option>' + cohorts.sort().map(c => `<option value="${c}">${c}</option>`).join(''));
+    $('#departmentFilter').html('<option value="all">All Departments</option>' + departments.sort().map(d => `<option value="${d}">${d}</option>`).join(''));
+    $('#hrbpFilter').html('<option value="all">All HRBPs</option>' + hrbps.sort().map(h => `<option value="${h}">${h}</option>`).join(''));
+    $('#levelFilter').html('<option value="all">All Levels</option>' + levels.sort().map(l => `<option value="${l}">${l}</option>`).join(''));
 }
 
 // ========== FILTERING ==========
 function applyFilters() {
-    const selectedCohorts = getSelectedValues('cohortFilter');
-    const selectedDepartments = getSelectedValues('departmentFilter');
-    const selectedHRBPs = getSelectedValues('hrbpFilter');
-    const selectedTypes = getSelectedValues('employeeTypeFilter');
-    const selectedLevels = getSelectedValues('levelFilter');
-    const startDate = new Date(document.getElementById('startDate').value);
-    const endDate = new Date(document.getElementById('endDate').value);
+    const cohorts = $('#cohortFilter').val() || ['all'];
+    const departments = $('#departmentFilter').val() || ['all'];
+    const hrbps = $('#hrbpFilter').val() || ['all'];
+    const types = $('#employeeTypeFilter').val() || ['all'];
+    const levels = $('#levelFilter').val() || ['all'];
 
     filteredData = employeeData.filter(emp => {
-        const cohortMatch = selectedCohorts.includes('all') || selectedCohorts.includes(emp.cohort);
-        const deptMatch = selectedDepartments.includes('all') || selectedDepartments.includes(emp.department);
-        const hrbpMatch = selectedHRBPs.includes('all') || selectedHRBPs.includes(emp.hrbp);
-        const typeMatch = selectedTypes.includes('all') || selectedTypes.includes(emp.employeeType);
-        const levelMatch = selectedLevels.includes('all') || selectedLevels.includes(emp.level);
-
-        return cohortMatch && deptMatch && hrbpMatch && typeMatch && levelMatch;
+        return (cohorts.includes('all') || cohorts.includes(emp.cohort)) &&
+               (departments.includes('all') || departments.includes(emp.department)) &&
+               (hrbps.includes('all') || hrbps.includes(emp.hrbp)) &&
+               (types.includes('all') || types.includes(emp.employeeType)) &&
+               (levels.includes('all') || levels.includes(emp.level));
     });
 
-    calculateAndDisplayMetrics(startDate, endDate);
-}
-
-function getSelectedValues(selectId) {
-    const select = document.getElementById(selectId);
-    const selected = Array.from(select.selectedOptions).map(opt => opt.value);
+    const startDate = new Date(document.getElementById('startDate').value);
+    const endDate = new Date(document.getElementById('endDate').value);
     
-    // If nothing selected or "all" is selected, return ['all']
-    if (selected.length === 0 || selected.includes('all')) {
-        return ['all'];
-    }
-    
-    return selected;
+    calculateMetrics(startDate, endDate);
 }
 
 // ========== COST CALCULATIONS ==========
-function calculateAndDisplayMetrics(startDate, endDate) {
-    const currentDate = new Date();
+function calculateMetrics(startDate, endDate) {
+    const today = new Date();
+    const fyStart = getFYStart(endDate);
+    const fyEnd = getFYEnd(endDate);
     
-    // Get current FY based on the end date selected
-    const selectedFY = getFYForDate(endDate);
-    const fyStart = selectedFY.start;
-    const fyEnd = selectedFY.end;
-    
-    // Headcounts - based on current actual date, not filter dates
-    const currentHeadcount = filteredData.filter(e => 
-        e.status === 'Active' && 
-        e.dateOfJoining && 
-        e.dateOfJoining <= currentDate &&
-        (!e.dateOfLeaving || e.dateOfLeaving >= currentDate)
+    // Headcounts
+    const current = filteredData.filter(e => 
+        e.status === 'Active' && e.dateOfJoining && 
+        e.dateOfJoining <= today && (!e.dateOfLeaving || e.dateOfLeaving >= today)
     ).length;
     
-    const toBeHired = filteredData.filter(e => e.status === 'Planned').length;
-    const totalHeadcount = currentHeadcount + toBeHired;
-
-    // Monthly Cost - for current month
-    const monthlyCost = calculateMonthlyCost(filteredData, currentDate);
+    const toHire = filteredData.filter(e => e.status === 'Planned').length;
     
-    // YTD Cost - from FY start to the SELECTED END DATE (not current date)
-    const ytdCost = calculateYTDCost(filteredData, fyStart, endDate);
+    // Costs
+    const monthly = calculateMonthlyCost(filteredData, today);
+    const ytd = calculateYTDCost(filteredData, fyStart, endDate);
+    const annual = calculateAnnualProjection(filteredData, fyStart, fyEnd, today);
     
-    // Annual Cost - PROJECTED till end of FY (March 31)
-    // This includes actual cost till now + projected cost for remaining months
-    const annualCost = calculateAnnualProjectedCost(filteredData, fyStart, fyEnd, currentDate);
-
-    // Update KPIs
-    document.getElementById('currentHeadcount').textContent = currentHeadcount.toLocaleString();
-    document.getElementById('toBeHired').textContent = toBeHired.toLocaleString();
-    document.getElementById('totalHeadcount').textContent = totalHeadcount.toLocaleString();
-    document.getElementById('monthlyCost').textContent = formatCurrency(monthlyCost);
-    document.getElementById('ytdCost').textContent = formatCurrency(ytdCost);
-    document.getElementById('annualCost').textContent = formatCurrency(annualCost);
-
-    // Debug logging
-    console.log('=== COST CALCULATION DEBUG ===');
-    console.log('FY Start:', fyStart.toDateString());
-    console.log('FY End:', fyEnd.toDateString());
-    console.log('Selected End Date:', endDate.toDateString());
-    console.log('Current Date:', currentDate.toDateString());
-    console.log('Monthly Cost:', monthlyCost);
-    console.log('YTD Cost (FY start to selected end date):', ytdCost);
-    console.log('Annual Cost (projected to FY end):', annualCost);
-    console.log('Filtered Employees Count:', filteredData.length);
-    console.log('==============================');
-
-    // Update tables - use endDate for YTD calculations
-    updateCohortTable(filteredData, fyStart, endDate, fyEnd);
-    updateEmployeeTypeTable(filteredData, fyStart, endDate, fyEnd);
-    updateLevelTable(filteredData, fyStart, endDate, fyEnd);
-
-    // Update FY chart
+    // Update UI
+    document.getElementById('currentHeadcount').textContent = current.toLocaleString();
+    document.getElementById('toBeHired').textContent = toHire.toLocaleString();
+    document.getElementById('totalHeadcount').textContent = (current + toHire).toLocaleString();
+    document.getElementById('monthlyCost').textContent = formatCurrency(monthly);
+    document.getElementById('ytdCost').textContent = formatCurrency(ytd);
+    document.getElementById('annualCost').textContent = formatCurrency(annual);
+    
+    // Debug
+    console.log('FY:', fyStart.toDateString(), '-', fyEnd.toDateString());
+    console.log('Monthly:', monthly, 'YTD:', ytd, 'Annual:', annual);
+    
+    // Tables
+    updateTables(filteredData, fyStart, endDate, fyEnd, today);
     updateFYChart();
 }
 
-function calculateMonthlyCost(employees, targetDate) {
-    let totalCost = 0;
-    const targetMonth = targetDate.getMonth();
-    const targetYear = targetDate.getFullYear();
-
+function calculateMonthlyCost(employees, date) {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    const daysInMonth = monthEnd.getDate();
+    
+    let total = 0;
     employees.forEach(emp => {
-        if (!emp.dateOfJoining) return;
-
-        const monthStart = new Date(targetYear, targetMonth, 1);
-        const monthEnd = new Date(targetYear, targetMonth + 1, 0);
-
-        if (emp.dateOfJoining <= monthEnd && (!emp.dateOfLeaving || emp.dateOfLeaving >= monthStart)) {
-            const monthlyCTC = emp.annualCTC / 12;
-            const activeStart = emp.dateOfJoining > monthStart ? emp.dateOfJoining : monthStart;
-            const activeEnd = emp.dateOfLeaving && emp.dateOfLeaving < monthEnd ? emp.dateOfLeaving : monthEnd;
-            
-            const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
-            const daysActive = Math.ceil((activeEnd - activeStart) / (1000 * 60 * 60 * 24)) + 1;
-            
-            const proratedCost = (monthlyCTC / daysInMonth) * daysActive;
-            totalCost += proratedCost;
-        }
+        if (!emp.dateOfJoining || emp.dateOfJoining > monthEnd) return;
+        if (emp.dateOfLeaving && emp.dateOfLeaving < monthStart) return;
+        
+        const start = emp.dateOfJoining > monthStart ? emp.dateOfJoining : monthStart;
+        const end = emp.dateOfLeaving && emp.dateOfLeaving < monthEnd ? emp.dateOfLeaving : monthEnd;
+        const days = Math.ceil((end - start) / (1000*60*60*24)) + 1;
+        
+        total += (emp.annualCTC / 12 / daysInMonth) * days;
     });
-
-    return totalCost;
+    return total;
 }
 
 function calculateYTDCost(employees, fyStart, endDate) {
-    let totalCost = 0;
-    const startYear = fyStart.getFullYear();
-    const startMonth = fyStart.getMonth();
-    const endYear = endDate.getFullYear();
-    const endMonth = endDate.getMonth();
-
-    for (let year = startYear; year <= endYear; year++) {
-        const firstMonth = (year === startYear) ? startMonth : 0;
-        const lastMonth = (year === endYear) ? endMonth : 11;
-
-        for (let month = firstMonth; month <= lastMonth; month++) {
-            const monthDate = new Date(year, month, 15);
-            totalCost += calculateMonthlyCost(employees, monthDate);
-        }
+    let total = 0;
+    let current = new Date(fyStart);
+    
+    while (current <= endDate) {
+        total += calculateMonthlyCost(employees, current);
+        current.setMonth(current.getMonth() + 1);
     }
-
-    return totalCost;
+    return total;
 }
 
-function calculateAnnualProjectedCost(employees, fyStart, fyEnd, currentDate) {
-    // Calculate actual cost from FY start till current date
-    const actualCost = calculateYTDCost(employees, fyStart, currentDate);
+function calculateAnnualProjection(employees, fyStart, fyEnd, today) {
+    const ytd = calculateYTDCost(employees, fyStart, today);
     
-    // Calculate projected cost from current date till FY end
-    let projectedCost = 0;
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth();
-    const endYear = fyEnd.getFullYear();
-    const endMonth = fyEnd.getMonth();
+    const active = employees.filter(e => 
+        e.status === 'Active' && e.dateOfJoining && 
+        e.dateOfJoining <= today && (!e.dateOfLeaving || e.dateOfLeaving >= today)
+    );
     
-    // Get current active employees for projection
-    const activeEmployees = employees.filter(emp => {
-        return emp.status === 'Active' && 
-               emp.dateOfJoining && 
-               emp.dateOfJoining <= currentDate &&
-               (!emp.dateOfLeaving || emp.dateOfLeaving >= currentDate);
-    });
+    let projection = 0;
+    let current = new Date(today);
+    current.setMonth(current.getMonth() + 1);
     
-    // Project remaining months using current active headcount
-    for (let year = currentYear; year <= endYear; year++) {
-        const firstMonth = (year === currentYear) ? currentMonth + 1 : 0;
-        const lastMonth = (year === endYear) ? endMonth : 11;
-
-        for (let month = firstMonth; month <= lastMonth; month++) {
-            // Use current employee salaries for projection
-            activeEmployees.forEach(emp => {
-                projectedCost += emp.annualCTC / 12;
-            });
-        }
+    while (current <= fyEnd) {
+        active.forEach(emp => projection += emp.annualCTC / 12);
+        current.setMonth(current.getMonth() + 1);
     }
     
-    return actualCost + projectedCost;
-}
-
-function calculateAnnualCost(employees, fyStart, fyEnd) {
-    // This is the historical/actual annual cost for a completed FY
-    return calculateYTDCost(employees, fyStart, fyEnd);
+    return ytd + projection;
 }
 
 // ========== TABLES ==========
-function updateCohortTable(employees, fyStart, endDate, fyEnd) {
-    const currentDate = new Date();
-    const cohortData = {};
+function updateTables(employees, fyStart, endDate, fyEnd, today) {
+    updateCohortTable(employees, fyStart, endDate, fyEnd, today);
+    updateEmployeeTypeTable(employees, fyStart, endDate, fyEnd, today);
+    updateLevelTable(employees, fyStart, endDate, fyEnd, today);
+}
 
-    employees.forEach(emp => {
-        if (!cohortData[emp.cohort]) {
-            cohortData[emp.cohort] = { headcount: 0, employees: [] };
-        }
-        cohortData[emp.cohort].headcount++;
-        cohortData[emp.cohort].employees.push(emp);
+function updateCohortTable(employees, fyStart, endDate, fyEnd, today) {
+    const data = {};
+    employees.forEach(e => {
+        if (!data[e.cohort]) data[e.cohort] = [];
+        data[e.cohort].push(e);
     });
-
+    
     const tbody = document.querySelector('#cohortTable tbody');
     tbody.innerHTML = '';
-
-    Object.keys(cohortData).sort().forEach(cohort => {
-        const data = cohortData[cohort];
-        const monthlyCost = calculateMonthlyCost(data.employees, currentDate);
-        const ytdCost = calculateYTDCost(data.employees, fyStart, endDate);
-        const annualCost = calculateAnnualProjectedCost(data.employees, fyStart, fyEnd, currentDate);
-
+    
+    Object.keys(data).sort().forEach(cohort => {
+        const emps = data[cohort];
         const row = tbody.insertRow();
         row.innerHTML = `
             <td>${cohort || 'Unassigned'}</td>
-            <td>${data.headcount}</td>
-            <td>${formatCurrency(monthlyCost)}</td>
-            <td>${formatCurrency(ytdCost)}</td>
-            <td>${formatCurrency(annualCost)}</td>
+            <td>${emps.length}</td>
+            <td>${formatCurrency(calculateMonthlyCost(emps, today))}</td>
+            <td>${formatCurrency(calculateYTDCost(emps, fyStart, endDate))}</td>
+            <td>${formatCurrency(calculateAnnualProjection(emps, fyStart, fyEnd, today))}</td>
         `;
     });
 }
 
-function updateEmployeeTypeTable(employees, fyStart, endDate, fyEnd) {
-    const currentDate = new Date();
-    const typeData = {};
-
-    // Initialize all three types
-    ['Management', 'Non-Management', 'Consultant'].forEach(type => {
-        typeData[type] = { headcount: 0, employees: [] };
+function updateEmployeeTypeTable(employees, fyStart, endDate, fyEnd, today) {
+    const data = {
+        'Management': [],
+        'Non-Management': [],
+        'Consultant': []
+    };
+    
+    employees.forEach(e => {
+        if (data[e.employeeType]) data[e.employeeType].push(e);
     });
-
-    // Populate with actual data
-    employees.forEach(emp => {
-        if (typeData[emp.employeeType]) {
-            typeData[emp.employeeType].headcount++;
-            typeData[emp.employeeType].employees.push(emp);
-        }
-    });
-
+    
     const tbody = document.querySelector('#employeeTypeTable tbody');
     tbody.innerHTML = '';
-
-    // Show all types even if headcount is 0
+    
     ['Management', 'Non-Management', 'Consultant'].forEach(type => {
-        const data = typeData[type];
-        const monthlyCost = data.employees.length > 0 ? calculateMonthlyCost(data.employees, currentDate) : 0;
-        const ytdCost = data.employees.length > 0 ? calculateYTDCost(data.employees, fyStart, endDate) : 0;
-        const annualCost = data.employees.length > 0 ? calculateAnnualProjectedCost(data.employees, fyStart, fyEnd, currentDate) : 0;
-
+        const emps = data[type];
         const row = tbody.insertRow();
         row.innerHTML = `
             <td>${type}</td>
-            <td>${data.headcount}</td>
-            <td>${formatCurrency(monthlyCost)}</td>
-            <td>${formatCurrency(ytdCost)}</td>
-            <td>${formatCurrency(annualCost)}</td>
+            <td>${emps.length}</td>
+            <td>${formatCurrency(calculateMonthlyCost(emps, today))}</td>
+            <td>${formatCurrency(calculateYTDCost(emps, fyStart, endDate))}</td>
+            <td>${formatCurrency(calculateAnnualProjection(emps, fyStart, fyEnd, today))}</td>
         `;
     });
 }
 
-function updateLevelTable(employees, fyStart, endDate, fyEnd) {
-    const currentDate = new Date();
-    const levelData = {};
-
-    employees.forEach(emp => {
-        if (!levelData[emp.level]) {
-            levelData[emp.level] = { headcount: 0, employees: [] };
-        }
-        levelData[emp.level].headcount++;
-        levelData[emp.level].employees.push(emp);
+function updateLevelTable(employees, fyStart, endDate, fyEnd, today) {
+    const data = {};
+    employees.forEach(e => {
+        if (!data[e.level]) data[e.level] = [];
+        data[e.level].push(e);
     });
-
+    
     const tbody = document.querySelector('#levelTable tbody');
     tbody.innerHTML = '';
-
-    Object.keys(levelData).sort().forEach(level => {
-        const data = levelData[level];
-        const monthlyCost = calculateMonthlyCost(data.employees, currentDate);
-        const ytdCost = calculateYTDCost(data.employees, fyStart, endDate);
-        const annualCost = calculateAnnualProjectedCost(data.employees, fyStart, fyEnd, currentDate);
-
+    
+    Object.keys(data).sort().forEach(level => {
+        const emps = data[level];
         const row = tbody.insertRow();
         row.innerHTML = `
             <td>${level || 'Unassigned'}</td>
-            <td>${data.headcount}</td>
-            <td>${formatCurrency(monthlyCost)}</td>
-            <td>${formatCurrency(ytdCost)}</td>
-            <td>${formatCurrency(annualCost)}</td>
+            <td>${emps.length}</td>
+            <td>${formatCurrency(calculateMonthlyCost(emps, today))}</td>
+            <td>${formatCurrency(calculateYTDCost(emps, fyStart, endDate))}</td>
+            <td>${formatCurrency(calculateAnnualProjection(emps, fyStart, fyEnd, today))}</td>
         `;
     });
 }
 
 // ========== CHARTS ==========
 function updateFYChart() {
-    const currentDate = new Date();
-    const currentFYInfo = getCurrentFY();
+    const today = new Date();
+    const currentFY = getFYStart(today).getFullYear();
+    
     const years = [];
     const costs = [];
-
-    // Get past 5 FYs
-    for (let i = 4; i >= 0; i--) {
-        const fyStartYear = currentFYInfo.start.year - i;
-        const fyStart = new Date(fyStartYear, 3, 1); // April 1
-        const fyEnd = new Date(fyStartYear + 1, 2, 31); // March 31
-        
-        const yearEmployees = employeeData.filter(emp => {
-            if (!emp.dateOfJoining) return false;
-            return emp.dateOfJoining <= fyEnd && (!emp.dateOfLeaving || emp.dateOfLeaving >= fyStart);
-        });
-
-        const yearCost = calculateAnnualCost(yearEmployees, fyStart, fyEnd);
-        
-        years.push(`FY ${fyStartYear}-${(fyStartYear + 1).toString().slice(-2)}`);
-        costs.push({ value: yearCost / 10000000, year: fyStartYear });
-    }
-
-    const ctx = document.getElementById('fyTrendChart').getContext('2d');
     
-    if (window.fyChart) {
-        window.fyChart.destroy();
+    for (let i = 4; i >= 0; i--) {
+        const fyYear = currentFY - i;
+        const start = new Date(fyYear, 3, 1);
+        const end = new Date(fyYear + 1, 2, 31);
+        
+        const fyEmps = employeeData.filter(e => 
+            e.dateOfJoining && e.dateOfJoining <= end && (!e.dateOfLeaving || e.dateOfLeaving >= start)
+        );
+        
+        years.push(`FY ${fyYear}-${(fyYear+1).toString().slice(-2)}`);
+        costs.push({
+            value: calculateYTDCost(fyEmps, start, end) / 10000000,
+            year: fyYear
+        });
     }
-
+    
+    const ctx = document.getElementById('fyTrendChart').getContext('2d');
+    if (window.fyChart) window.fyChart.destroy();
+    
     window.fyChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: years,
             datasets: [{
-                label: 'Total Manpower Cost (₹ Cr)',
                 data: costs.map(c => c.value),
                 backgroundColor: '#000000',
-                borderColor: '#000000',
-                borderWidth: 1,
                 borderRadius: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            onClick: (event, elements) => {
-                if (elements.length > 0) {
-                    const index = elements[0].index;
-                    selectedFY = costs[index].year;
-                    showDepartmentView(selectedFY);
-                }
+            onClick: (e, elements) => {
+                if (elements[0]) showDepartmentView(costs[elements[0].index].year);
             },
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: '#000000',
-                    padding: 12,
-                    callbacks: {
-                        label: (context) => `Cost: ₹ ${context.parsed.y.toFixed(2)} Cr`
-                    }
+                    backgroundColor: '#000',
+                    callbacks: { label: ctx => `₹ ${ctx.parsed.y.toFixed(2)} Cr` }
                 }
             },
             scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#333333', font: { size: 12 } }
-                },
+                x: { grid: { display: false } },
                 y: {
                     beginAtZero: true,
-                    grid: { color: '#e0e0e0' },
-                    ticks: {
-                        color: '#333333',
-                        font: { size: 12 },
-                        callback: (value) => '₹ ' + value.toFixed(1) + ' Cr'
-                    }
+                    ticks: { callback: v => `₹ ${v.toFixed(1)} Cr` }
                 }
             }
         }
     });
 }
 
-function showDepartmentView(fyStartYear) {
-    const fyStart = new Date(fyStartYear, 3, 1);
-    const fyEnd = new Date(fyStartYear + 1, 2, 31);
+function showDepartmentView(fyYear) {
+    const start = new Date(fyYear, 3, 1);
+    const end = new Date(fyYear + 1, 2, 31);
     
-    // Use filteredData (respects current filters), not all employeeData
-    const fyEmployees = filteredData.filter(emp => {
-        if (!emp.dateOfJoining) return false;
-        return emp.dateOfJoining <= fyEnd && (!emp.dateOfLeaving || emp.dateOfLeaving >= fyStart);
+    const fyEmps = filteredData.filter(e => 
+        e.dateOfJoining && e.dateOfJoining <= end && (!e.dateOfLeaving || e.dateOfLeaving >= start)
+    );
+    
+    const depts = {};
+    fyEmps.forEach(e => {
+        const dept = e.department || 'Unassigned';
+        if (!depts[dept]) depts[dept] = [];
+        depts[dept].push(e);
     });
     
-    // Group by department
-    const deptData = {};
-    fyEmployees.forEach(emp => {
-        const dept = emp.department || 'Unassigned';
-        if (!deptData[dept]) {
-            deptData[dept] = [];
-        }
-        deptData[dept].push(emp);
-    });
+    const labels = Object.keys(depts).sort();
+    const costs = labels.map(d => calculateYTDCost(depts[d], start, end) / 10000000);
     
-    const departments = Object.keys(deptData).sort();
-    const costs = departments.map(dept => {
-        // Calculate actual cost for this FY
-        const cost = calculateAnnualCost(deptData[dept], fyStart, fyEnd);
-        return cost / 10000000; // Convert to Cr
-    });
-    
-    // Update view
     document.getElementById('fyView').classList.remove('active');
     document.getElementById('deptView').classList.add('active');
-    document.getElementById('deptViewTitle').textContent = `Department-wise Cost: FY ${fyStartYear}-${(fyStartYear + 1).toString().slice(-2)}`;
+    document.getElementById('deptViewTitle').textContent = `Department Cost: FY ${fyYear}-${(fyYear+1).toString().slice(-2)}`;
     
-    // Create chart
     const ctx = document.getElementById('deptChart').getContext('2d');
+    if (window.deptChart) window.deptChart.destroy();
     
-    if (window.deptChart) {
-        window.deptChart.destroy();
-    }
-
     window.deptChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: departments,
-            datasets: [{
-                label: 'Department Cost (₹ Cr)',
-                data: costs,
-                backgroundColor: '#000000',
-                borderColor: '#000000',
-                borderWidth: 1,
-                borderRadius: 4
-            }]
+            labels: labels,
+            datasets: [{ data: costs, backgroundColor: '#000', borderRadius: 4 }]
         },
         options: {
             indexAxis: 'y',
@@ -651,26 +452,13 @@ function showDepartmentView(fyStartYear) {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: '#000000',
-                    padding: 12,
-                    callbacks: {
-                        label: (context) => `Cost: ₹ ${context.parsed.x.toFixed(2)} Cr`
-                    }
+                    backgroundColor: '#000',
+                    callbacks: { label: ctx => `₹ ${ctx.parsed.x.toFixed(2)} Cr` }
                 }
             },
             scales: {
-                x: {
-                    beginAtZero: true,
-                    grid: { color: '#e0e0e0' },
-                    ticks: {
-                        color: '#333333',
-                        callback: (value) => '₹ ' + value.toFixed(1) + ' Cr'
-                    }
-                },
-                y: {
-                    grid: { display: false },
-                    ticks: { color: '#333333', font: { size: 11 } }
-                }
+                x: { beginAtZero: true, ticks: { callback: v => `₹ ${v.toFixed(1)} Cr` } },
+                y: { grid: { display: false } }
             }
         }
     });
@@ -683,23 +471,14 @@ function showFYView() {
 
 // ========== UTILITIES ==========
 function formatCurrency(amount) {
-    if (amount >= 10000000) {
-        return '₹ ' + (amount / 10000000).toFixed(2) + ' Cr';
-    } else if (amount >= 100000) {
-        return '₹ ' + (amount / 100000).toFixed(2) + ' L';
-    } else {
-        return '₹ ' + amount.toLocaleString('en-IN', { maximumFractionDigits: 0 });
-    }
+    if (amount >= 10000000) return '₹ ' + (amount / 10000000).toFixed(2) + ' Cr';
+    if (amount >= 100000) return '₹ ' + (amount / 100000).toFixed(2) + ' L';
+    return '₹ ' + amount.toLocaleString('en-IN', { maximumFractionDigits: 0 });
 }
 
 function updateLastUpdated() {
     const now = new Date();
-    const formatted = now.toLocaleDateString('en-IN', { 
-        day: 'numeric',
-        month: 'short', 
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-    document.getElementById('lastUpdated').textContent = `Updated: ${formatted}`;
+    document.getElementById('lastUpdated').textContent = `Updated: ${now.toLocaleString('en-IN', {
+        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    })}`;
 }
