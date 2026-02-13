@@ -3,43 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sabyasachi | Manpower Cost Dashboard</title>
-    <!-- SheetJS for Excel Uploads -->
+    <title>Sabyasachi | Manpower Dashboard</title>
+    <!-- Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
         :root { --sab-black: #000000; --sab-white: #ffffff; --sab-gold: #AD9651; --sab-gray: #F8F8F8; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--sab-white); color: var(--sab-black); }
+        body { font-family: 'Inter', sans-serif; background-color: var(--sab-white); color: var(--sab-black); line-height: 1.4; }
 
-        /* --- LOGIN --- */
-        #loginScreen { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--sab-black); color: white; text-align: center; }
-        .brand-logo { font-family: 'Playfair Display', serif; font-size: 3.5rem; letter-spacing: 12px; margin-bottom: 40px; }
+        /* Login */
+        #loginScreen { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--sab-black); color: white; }
+        .brand-logo { font-family: 'Playfair Display', serif; font-size: 3.5rem; letter-spacing: 12px; margin-bottom: 30px; }
         .login-form input { width: 300px; background: transparent; border: none; border-bottom: 1px solid var(--sab-gold); color: white; padding: 12px; margin-bottom: 20px; outline: none; text-align: center; }
         .login-btn { width: 300px; padding: 15px; background: var(--sab-gold); color: black; border: none; font-weight: 600; cursor: pointer; letter-spacing: 2px; }
 
-        /* --- DASHBOARD --- */
+        /* Dashboard */
         #mainDashboard { display: none; padding: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid black; padding-bottom: 15px; margin-bottom: 20px; }
-        .header h2 { font-family: 'Playfair Display', serif; letter-spacing: 4px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid black; padding-bottom: 15px; }
+        .header h2 { font-family: 'Playfair Display', serif; letter-spacing: 4px; font-size: 1.8rem; }
         
-        /* Stats Bar */
-        .status-bar { display: flex; justify-content: flex-end; gap: 20px; font-size: 0.7rem; margin-bottom: 10px; color: #666; }
+        .status-bar { display: flex; justify-content: flex-end; gap: 20px; font-size: 0.65rem; padding: 10px 0; color: #666; }
         #successTag { color: var(--sab-gold); font-weight: bold; display: none; }
 
-        /* Filters */
-        .filter-bar { display: flex; gap: 10px; background: var(--sab-gray); padding: 15px; margin-bottom: 25px; align-items: center; flex-wrap: wrap; }
-        select, input[type="date"] { padding: 8px; border: 1px solid #ddd; font-size: 0.75rem; outline: none; background: white; }
+        /* Multi-Select Filters */
+        .filter-bar { display: flex; gap: 10px; background: var(--sab-gray); padding: 15px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filter-group label { font-size: 0.6rem; color: #888; text-transform: uppercase; margin-bottom: 4px; }
+        select[multiple] { height: 35px; min-width: 140px; font-size: 0.75rem; border: 1px solid #ddd; outline: none; }
+        .date-input { padding: 8px; border: 1px solid #ddd; font-size: 0.75rem; }
 
         /* KPI Tiles */
         .kpi-row { display: flex; gap: 1px; background: black; border: 1px solid black; margin-bottom: 30px; }
-        .kpi-tile { flex: 1; background: white; padding: 25px 10px; text-align: center; }
+        .kpi-tile { flex: 1; background: white; padding: 20px 10px; text-align: center; }
         .kpi-tile label { display: block; font-size: 0.6rem; letter-spacing: 1px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
         .kpi-tile .value { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; }
 
-        .admin-controls { display: none; }
-        .upload-btn { color: var(--sab-gold); font-size: 0.75rem; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        /* Content Grid */
+        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 40px; }
+        .card { background: white; border: 1px solid #eee; padding: 15px; }
+        .card h4 { font-size: 0.7rem; border-bottom: 1px solid black; padding-bottom: 5px; margin-bottom: 10px; letter-spacing: 1px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+        th { text-align: left; padding: 5px 0; color: #888; font-weight: 400; }
+        td { padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+
+        /* Graph Section */
+        .graph-section { background: white; border: 1px solid #eee; padding: 25px; margin-top: 20px; position: relative; }
+        .graph-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .back-btn { background: var(--sab-black); color: white; border: none; padding: 5px 15px; font-size: 0.7rem; cursor: pointer; display: none; }
+
+        .upload-btn { color: var(--sab-gold); font-size: 0.75rem; cursor: pointer; text-decoration: underline; font-weight: 600; margin-right: 15px; }
         .logout-btn { border: 1px solid black; padding: 5px 12px; font-size: 0.7rem; cursor: pointer; background: white; }
     </style>
 </head>
@@ -48,180 +63,255 @@
     <div id="loginScreen">
         <h1 class="brand-logo">SABYASACHI</h1>
         <form id="loginForm" class="login-form">
-            <input type="email" id="email" placeholder="EMAIL ADDRESS" required>
+            <input type="email" id="email" placeholder="ADMIN EMAIL" required>
             <input type="password" id="password" placeholder="PASSWORD" required>
-            <button type="submit" class="login-btn">ENTER</button>
+            <button type="submit" class="login-btn">ENTER DASHBOARD</button>
         </form>
     </div>
 
     <div id="mainDashboard">
         <div class="status-bar">
-            <span id="successTag">✓ UPDATE SUCCESSFUL</span>
+            <span id="successTag">✓ SYNC SUCCESSFUL</span>
             <span id="lastUpdateText">Last Updated: Never</span>
         </div>
         
         <header class="header">
             <h2>SABYASACHI</h2>
             <div>
-                <span id="adminControls" class="admin-controls">
-                    <label class="upload-btn" for="fileInput">UPLOAD MASTER (.XLSX)</label>
+                <span id="adminControls" style="display:none">
+                    <label class="upload-btn" for="fileInput">UPLOAD MASTER</label>
                     <input type="file" id="fileInput" style="display:none" onchange="handleExcel(event)">
                 </span>
-                <button class="logout-btn" onclick="logout()">LOGOUT</button>
+                <button class="logout-btn" onclick="location.reload()">LOGOUT</button>
             </div>
         </header>
 
         <div class="filter-bar">
-            <select id="cohortFilter" onchange="calculate()"><option value="">All Cohorts</option></select>
-            <select id="deptFilter" onchange="calculate()"><option value="">All Departments</option></select>
-            <select id="typeFilter" onchange="calculate()"><option value="">All Types</option></select>
-            <select id="levelFilter" onchange="calculate()"><option value="">All Levels</option></select>
-            <span style="font-size: 0.7rem; margin-left: 10px;">Select Date Range:</span>
-            <input type="date" id="startDate" onchange="calculate()">
-            <input type="date" id="endDate" onchange="calculate()">
+            <div class="filter-group"><label>Cohort</label><select id="cohortFilter" multiple onchange="calculate()"></select></div>
+            <div class="filter-group"><label>Dept</label><select id="deptFilter" multiple onchange="calculate()"></select></div>
+            <div class="filter-group"><label>Type</label><select id="typeFilter" multiple onchange="calculate()"></select></div>
+            <div class="filter-group"><label>Level</label><select id="levelFilter" multiple onchange="calculate()"></select></div>
+            <div class="filter-group"><label>FY Start</label><input type="date" id="startDate" class="date-input" onchange="calculate()"></div>
+            <div class="filter-group"><label>Analysis Date</label><input type="date" id="endDate" class="date-input" onchange="calculate()"></div>
         </div>
 
         <div class="kpi-row">
             <div class="kpi-tile"><label>Current HC</label><div id="hc-active" class="value">0</div></div>
-            <div class="kpi-tile"><label>To Be Hired</label><div id="hc-planned" class="value">0</div></div>
-            <div class="kpi-tile"><label>Total HC</label><div id="hc-total" class="value">0</div></div>
+            <div class="kpi-tile"><label>Planned</label><div id="hc-planned" class="value">0</div></div>
             <div class="kpi-tile"><label>Monthly Cost</label><div id="cost-monthly" class="value">₹0</div></div>
             <div class="kpi-tile"><label>YTD Cost</label><div id="cost-ytd" class="value">₹0</div></div>
-            <div class="kpi-tile"><label>Annual Projected</label><div id="cost-annual" class="value">₹0</div></div>
+            <div class="kpi-tile"><label>Annual Projection</label><div id="cost-annual" class="value">₹0</div></div>
+        </div>
+
+        <div class="grid">
+            <div class="card"><h4>BY COHORT</h4><table id="cohortTable"><thead><tr><th>Cohort</th><th>HC</th><th>YTD Cost</th></tr></thead><tbody></tbody></table></div>
+            <div class="card"><h4>BY TYPE</h4><table id="typeTable"><thead><tr><th>Type</th><th>HC</th><th>YTD Cost</th></tr></thead><tbody></tbody></table></div>
+            <div class="card"><h4>BY LEVEL</h4><table id="levelTable"><thead><tr><th>Level</th><th>HC</th><th>YTD Cost</th></tr></thead><tbody></tbody></table></div>
+        </div>
+
+        <div class="graph-section">
+            <div class="graph-header">
+                <h3 id="chartTitle" style="font-family: 'Playfair Display'; letter-spacing: 2px;">FY COST YEAR-ON-YEAR</h3>
+                <button id="backBtn" class="back-btn" onclick="resetChart()">← BACK TO YOY</button>
+            </div>
+            <div style="height: 300px;"><canvas id="mainChart"></canvas></div>
         </div>
     </div>
 
     <script>
-        let MASTER_DATA = [];
-        const USERS = { 'admin@sabyasachi.com': 'admin123' };
+        let DATA = [];
+        let mainChart = null;
 
         document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
-            if (USERS[email] === document.getElementById('password').value) {
-                sessionStorage.setItem('user', email);
-                init(email);
-            } else { alert("Invalid Credentials"); }
+            if (email === 'admin@sabyasachi.com' && document.getElementById('password').value === 'admin123') {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainDashboard').style.display = 'block';
+                document.getElementById('adminControls').style.display = 'inline';
+                setInitDates();
+            } else { alert("Access Denied"); }
         });
 
-        function init(email) {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainDashboard').style.display = 'block';
-            if (email === 'admin@sabyasachi.com') document.getElementById('adminControls').style.display = 'inline';
-            
+        function setInitDates() {
             const now = new Date();
-            const fyStart = now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
-            document.getElementById('startDate').value = `${fyStart}-04-01`;
+            const startYear = now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
+            document.getElementById('startDate').value = `${startYear}-04-01`;
             document.getElementById('endDate').valueAsDate = now;
         }
 
         function handleExcel(e) {
-            const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = (event) => {
-                const workbook = XLSX.read(event.target.result, { type: 'binary', cellDates: true });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(sheet);
-                
-                // Map and Clean Data
-                MASTER_DATA = json.map(row => ({
-                    code: row['Employee Code'],
-                    cohort: row['Cohort'],
-                    dept: row['Department'],
-                    type: row['Employee Type'],
-                    level: row['Level'],
-                    doj: new Date(row['Date of Joining']),
-                    dol: row['Date of Leaving'] ? new Date(row['Date of Leaving']) : null,
+                const workbook = XLSX.read(event.target.result, { type: 'binary' });
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                DATA = json.map(row => ({
+                    code: row['Employee Code'], cohort: row['Cohort'], dept: row['Department'],
+                    type: row['Employee Type'], level: row['Level'],
+                    doj: parseExcelDate(row['Date of Joining']),
+                    dol: row['Date of Leaving'] ? parseExcelDate(row['Date of Leaving']) : null,
                     ctc: parseFloat(String(row['Annual CTC']).replace(/,/g, '')) || 0,
                     status: row['Status']
                 }));
-
                 populateFilters();
                 calculate();
-                
-                // Success Indicators
-                document.getElementById('successTag').style.display = 'inline';
-                document.getElementById('lastUpdateText').innerText = "Last Updated: " + new Date().toLocaleTimeString();
-                setTimeout(() => document.getElementById('successTag').style.display = 'none', 3000);
+                updateYoYChart();
+                showSuccess();
             };
-            reader.readAsBinaryString(file);
+            reader.readAsBinaryString(e.target.files[0]);
+        }
+
+        function parseExcelDate(val) {
+            let date = new Date(val);
+            if (!isNaN(date)) return date;
+            return new Date(1900, 0, val - 1);
         }
 
         function populateFilters() {
             const fill = (id, key) => {
-                const vals = [...new Set(MASTER_DATA.map(d => d[key]))].sort();
-                const el = document.getElementById(id);
-                el.innerHTML = `<option value="">All ${key.charAt(0).toUpperCase() + key.slice(1)}s</option>`;
-                vals.forEach(v => el.innerHTML += `<option value="${v}">${v}</option>`);
+                const vals = [...new Set(DATA.map(d => d[key]))].sort();
+                document.getElementById(id).innerHTML = vals.map(v => `<option value="${v}" selected>${v}</option>`).join('');
             };
-            fill('cohortFilter', 'cohort');
-            fill('deptFilter', 'dept');
-            fill('typeFilter', 'type');
-            fill('levelFilter', 'level');
+            fill('cohortFilter', 'cohort'); fill('deptFilter', 'dept'); fill('typeFilter', 'type'); fill('levelFilter', 'level');
         }
 
         function calculate() {
-            const start = new Date(document.getElementById('startDate').value);
             const end = new Date(document.getElementById('endDate').value);
+            const startFY = new Date(document.getElementById('startDate').value);
             
-            const cohort = document.getElementById('cohortFilter').value;
-            const dept = document.getElementById('deptFilter').value;
-            const type = document.getElementById('typeFilter').value;
-            const level = document.getElementById('levelFilter').value;
+            const selCohorts = Array.from(document.getElementById('cohortFilter').selectedOptions).map(o => o.value);
+            const selDepts = Array.from(document.getElementById('deptFilter').selectedOptions).map(o => o.value);
+            const selTypes = Array.from(document.getElementById('typeFilter').selectedOptions).map(o => o.value);
+            const selLevels = Array.from(document.getElementById('levelFilter').selectedOptions).map(o => o.value);
 
-            let filtered = MASTER_DATA.filter(d => 
-                (!cohort || d.cohort === cohort) &&
-                (!dept || d.dept === dept) &&
-                (!type || d.type === type) &&
-                (!level || d.level === level)
-            );
+            let filtered = DATA.filter(d => selCohorts.includes(d.cohort) && selDepts.includes(d.dept) && selTypes.includes(d.type) && selLevels.includes(d.level));
 
-            let activeHC = 0, vacancyHC = 0, monthlyCost = 0, ytdCost = 0;
+            let mCost = 0, ytdCost = 0, activeHC = 0, vacancyHC = 0;
 
             filtered.forEach(emp => {
-                const doj = emp.doj;
-                const dol = emp.dol || new Date(2099, 11, 31);
+                const doj = emp.doj, dol = emp.dol || new Date(2099, 11, 31);
                 
-                // Is Active at selected End Date
-                if (doj <= end && dol >= end && emp.status === 'Active') {
-                    activeHC++;
-                    monthlyCost += (emp.ctc / 12);
-                }
-                if (emp.status === 'Vacancy' || emp.status === 'Planned') vacancyHC++;
+                // Monthly Cost (Pro-rata)
+                mCost += getMonthCost(emp, end.getFullYear(), end.getMonth());
+                
+                if (doj <= end && dol >= end && emp.status === 'Active') activeHC++;
+                if (emp.status.toLowerCase().includes('vacancy') || emp.status.toLowerCase().includes('planned')) vacancyHC++;
 
-                // YTD: From April 1st to End Date
-                const fyStart = new Date(end.getMonth() < 3 ? end.getFullYear() - 1 : end.getFullYear(), 3, 1);
-                let runner = new Date(fyStart);
+                // YTD (Loop months from FY Start to End Date)
+                let runner = new Date(startFY);
                 while (runner <= end) {
-                    const mStart = new Date(runner.getFullYear(), runner.getMonth(), 1);
-                    const mEnd = new Date(runner.getFullYear(), runner.getMonth() + 1, 0);
-                    if (doj <= mEnd && dol >= mStart && emp.status === 'Active') {
-                        ytdCost += (emp.ctc / 12);
-                    }
-                    runner.setMonth(runner.setMonth() + 1);
+                    ytdCost += getMonthCost(emp, runner.getFullYear(), runner.getMonth());
+                    runner.setMonth(runner.getMonth() + 1);
                 }
             });
 
-            // Projection: YTD + (Monthly * Months left until March 31)
-            const fyEnd = new Date(end.getMonth() < 3 ? end.getFullYear() : end.getFullYear() + 1, 2, 31);
+            // Projection
+            const fyEnd = new Date(startFY.getFullYear() + 1, 2, 31);
             const monthsLeft = (fyEnd.getFullYear() - end.getFullYear()) * 12 + (fyEnd.getMonth() - end.getMonth());
-            const annualProjected = ytdCost + (monthlyCost * monthsLeft);
+            const annualProjected = ytdCost + (mCost * monthsLeft);
 
             document.getElementById('hc-active').innerText = activeHC;
             document.getElementById('hc-planned').innerText = vacancyHC;
-            document.getElementById('hc-total').innerText = activeHC + vacancyHC;
-            document.getElementById('cost-monthly').innerText = format(monthlyCost);
-            document.getElementById('cost-ytd').innerText = format(ytdCost);
-            document.getElementById('cost-annual').innerText = format(annualProjected);
+            document.getElementById('cost-monthly').innerText = fmt(mCost);
+            document.getElementById('cost-ytd').innerText = fmt(ytdCost);
+            document.getElementById('cost-annual').innerText = fmt(annualProjected);
+
+            updateBreakdownTable('cohortTable', filtered, 'cohort', startFY, end);
+            updateBreakdownTable('typeTable', filtered, 'type', startFY, end);
+            updateBreakdownTable('levelTable', filtered, 'level', startFY, end);
         }
 
-        function format(num) {
-            if (num >= 10000000) return "₹" + (num / 10000000).toFixed(2) + " Cr";
-            if (num >= 100000) return "₹" + (num / 100000).toFixed(2) + " L";
-            return "₹" + Math.round(num).toLocaleString('en-IN');
+        function getMonthCost(emp, year, month) {
+            const mStart = new Date(year, month, 1);
+            const mEnd = new Date(year, month + 1, 0);
+            const totalDays = mEnd.getDate();
+            const overlapStart = emp.doj > mStart ? emp.doj : mStart;
+            const overlapEnd = (emp.dol && emp.dol < mEnd) ? emp.dol : mEnd;
+
+            if (overlapStart <= mEnd && overlapEnd >= mStart) {
+                const activeDays = Math.max(0, (overlapEnd - overlapStart) / (1000 * 60 * 60 * 24) + 1);
+                return (emp.ctc / 12) * (activeDays / totalDays);
+            }
+            return 0;
         }
 
-        function logout() { sessionStorage.clear(); location.reload(); }
+        function updateBreakdownTable(tableId, filtered, key, fyStart, end) {
+            const tbody = document.querySelector(`#${tableId} tbody`);
+            tbody.innerHTML = '';
+            const groups = [...new Set(filtered.map(d => d[key]))];
+            groups.forEach(g => {
+                const subset = filtered.filter(d => d[key] === g);
+                let gYTD = 0;
+                subset.forEach(e => {
+                    let r = new Date(fyStart);
+                    while(r <= end) { gYTD += getMonthCost(e, r.getFullYear(), r.getMonth()); r.setMonth(r.getMonth()+1); }
+                });
+                tbody.innerHTML += `<tr><td>${g}</td><td>${subset.length}</td><td>${fmt(gYTD)}</td></tr>`;
+            });
+        }
+
+        function updateYoYChart() {
+            const years = [2022, 2023, 2024, 2025];
+            const dataset = years.map(y => {
+                let total = 0;
+                const fyS = new Date(y, 3, 1), fyE = new Date(y+1, 2, 31);
+                DATA.forEach(e => {
+                    let r = new Date(fyS);
+                    while(r <= fyE) { total += getMonthCost(e, r.getFullYear(), r.getMonth()); r.setMonth(r.getMonth()+1); }
+                });
+                return total;
+            });
+
+            if(mainChart) mainChart.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            mainChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: ['FY 22-23', 'FY 23-24', 'FY 24-25', 'FY 25-26'], datasets: [{ data: dataset, backgroundColor: '#000' }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    onClick: (e, elements) => { if(elements.length > 0) drillDown(years[elements[0].index]); },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function drillDown(year) {
+            document.getElementById('chartTitle').innerText = `DEPT BREAKDOWN: FY ${year}-${(year+1).toString().slice(-2)}`;
+            document.getElementById('backBtn').style.display = 'block';
+            
+            const depts = [...new Set(DATA.map(d => d.dept))];
+            const fyS = new Date(year, 3, 1), fyE = new Date(year+1, 2, 31);
+            const data = depts.map(d => {
+                let t = 0;
+                DATA.filter(e => e.dept === d).forEach(e => {
+                    let r = new Date(fyS); while(r <= fyE) { t += getMonthCost(e, r.getFullYear(), r.getMonth()); r.setMonth(r.getMonth()+1); }
+                });
+                return t;
+            });
+
+            mainChart.data.labels = depts;
+            mainChart.data.datasets[0].data = data;
+            mainChart.data.datasets[0].backgroundColor = '#AD9651';
+            mainChart.update();
+        }
+
+        function resetChart() {
+            document.getElementById('chartTitle').innerText = 'FY COST YEAR-ON-YEAR';
+            document.getElementById('backBtn').style.display = 'none';
+            updateYoYChart();
+        }
+
+        function fmt(n) { 
+            if (n >= 10000000) return "₹" + (n/10000000).toFixed(2) + " Cr"; 
+            if (n >= 100000) return "₹" + (n/100000).toFixed(2) + " L";
+            return "₹" + Math.round(n).toLocaleString('en-IN'); 
+        }
+
+        function showSuccess() {
+            document.getElementById('successTag').style.display = 'inline';
+            document.getElementById('lastUpdateText').innerText = "Last Updated: " + new Date().toLocaleTimeString();
+            setTimeout(() => document.getElementById('successTag').style.display = 'none', 4000);
+        }
     </script>
 </body>
 </html>
