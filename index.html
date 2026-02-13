@@ -1,121 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manpower Cost Dashboard | Sabyasachi</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-</head>
-<body>
-    <div id="loginScreen" class="login-screen">
-        <div class="login-container">
-            <h1 class="brand-title">SABYASACHI</h1>
-            <p class="brand-subtitle">MANPOWER COST DASHBOARD</p>
-            <form id="loginForm">
-                <input type="email" id="email" placeholder="Email Address" required>
-                <input type="password" id="password" placeholder="Password" required>
-                <button type="submit" class="login-btn">ENTER</button>
-                <div id="loginError" class="error-message"></div>
-            </form>
+<!-- Save as index.html -->
+<div id="loginScreen" class="login-screen">
+    <h1 class="brand-title">SABYASACHI</h1>
+    <p class="brand-subtitle">MANPOWER COST DASHBOARD</p>
+    <form id="loginForm" class="login-form">
+        <input type="email" id="email" placeholder="EMAIL ADDRESS" required>
+        <input type="password" id="password" placeholder="PASSWORD" required>
+        <button type="submit" class="login-btn">ENTER</button>
+    </form>
+</div>
+
+<div id="mainDashboard" class="dashboard-container" style="display: none;">
+    <header class="main-header">
+        <div class="brand-title" style="font-size: 1.5rem;">SABYASACHI</div>
+        <div class="header-right">
+            <div id="adminControls" style="display: none;">
+                <label for="fileInput" class="action-link">UPLOAD DATA</label>
+                <input type="file" id="fileInput" style="display:none" onchange="handleFile(event)">
+            </div>
+            <button onclick="location.reload()" class="logout-btn">LOGOUT</button>
         </div>
+    </header>
+
+    <div class="filter-bar">
+        <select id="cohortFilter" class="filter-select" multiple data-placeholder="COHORT"></select>
+        <select id="typeFilter" class="filter-select" multiple data-placeholder="EMPLOYEE TYPE">
+            <option>Management</option>
+            <option>Non Management</option>
+            <option>Consultant</option>
+        </select>
+        <select id="levelFilter" class="filter-select" multiple data-placeholder="LEVEL"></select>
+        <input type="date" id="startDate" class="date-input">
+        <input type="date" id="endDate" class="date-input">
     </div>
 
-    <div id="mainDashboard" class="dashboard-container" style="display: none;">
-        <header class="main-header">
-            <div class="header-left">
-                <span class="brand-logo">SABYASACHI</span>
-                <span class="page-title">| Manpower Cost Dashboard</span>
-            </div>
-            <div class="header-right">
-                <div id="adminControls" style="display: none;">
-                    <label for="fileInput" class="action-link">UPLOAD MASTER</label>
-                    <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
-                </div>
-                <span id="lastUpdated"></span>
-                <button id="logoutBtn" class="logout-btn">LOGOUT</button>
-            </div>
-        </header>
-
-        <nav class="filter-bar">
-            <select id="cohortFilter" class="filter-select" multiple data-placeholder="COHORT"></select>
-            <select id="departmentFilter" class="filter-select" multiple data-placeholder="DEPARTMENT"></select>
-            <select id="hrbpFilter" class="filter-select" multiple data-placeholder="HRBP"></select>
-            <select id="employeeTypeFilter" class="filter-select" multiple data-placeholder="TYPE">
-                <option value="Management">Management</option>
-                <option value="Non-Management">Non-Management</option>
-                <option value="Consultant">Consultant</option>
-            </select>
-            <select id="levelFilter" class="filter-select" multiple data-placeholder="LEVEL"></select>
-            <div class="date-group">
-                <input type="date" id="startDate" class="date-input">
-                <span>to</span>
-                <input type="date" id="endDate" class="date-input">
-            </div>
-        </nav>
-
-        <section class="kpi-row">
-            <div class="kpi-tile">
-                <label>ACTIVE HC</label>
-                <div id="currentHeadcount" class="value">-</div>
-            </div>
-            <div class="kpi-tile">
-                <label>TO BE HIRED</label>
-                <div id="toBeHired" class="value">-</div>
-            </div>
-            <div class="kpi-tile">
-                <label>TOTAL HC</label>
-                <div id="totalHeadcount" class="value">-</div>
-            </div>
-            <div class="kpi-tile highlight">
-                <label>MONTHLY COST</label>
-                <div id="monthlyCost" class="value">-</div>
-            </div>
-            <div class="kpi-tile highlight">
-                <label>YTD COST</label>
-                <div id="ytdCost" class="value">-</div>
-            </div>
-            <div class="kpi-tile highlight">
-                <label>ANNUAL PROJECTED</label>
-                <div id="annualCost" class="value">-</div>
-            </div>
-        </section>
-
-        <div class="dashboard-grid">
-            <div class="chart-section card">
-                <div id="fyView">
-                    <h3>YEAR-ON-YEAR FY COST <small>(Click bars for Dept details)</small></h3>
-                    <div class="chart-container"><canvas id="fyTrendChart"></canvas></div>
-                </div>
-                <div id="deptView" style="display: none;">
-                    <div class="view-header">
-                        <h3 id="deptViewTitle">DEPARTMENT BREAKDOWN</h3>
-                        <button id="backToFY" class="text-btn">← BACK</button>
-                    </div>
-                    <div class="chart-container"><canvas id="deptChart"></canvas></div>
-                </div>
-            </div>
-
-            <div class="tables-section">
-                <div class="card mini-table">
-                    <h4>BY COHORT</h4>
-                    <table id="cohortTable"><thead><tr><th>COHORT</th><th>HC</th><th>YTD</th></tr></thead><tbody></tbody></table>
-                </div>
-                <div class="card mini-table">
-                    <h4>BY TYPE</h4>
-                    <table id="employeeTypeTable"><thead><tr><th>TYPE</th><th>HC</th><th>YTD</th></tr></thead><tbody></tbody></table>
-                </div>
-                <div class="card mini-table">
-                    <h4>BY LEVEL</h4>
-                    <table id="levelTable"><thead><tr><th>LEVEL</th><th>HC</th><th>YTD</th></tr></thead><tbody></tbody></table>
-                </div>
-            </div>
-        </div>
+    <div class="kpi-row">
+        <div class="kpi-tile"><label>ACTIVE HC</label><div id="currentHeadcount" class="value">-</div></div>
+        <div class="kpi-tile"><label>TO BE HIRED</label><div id="toBeHired" class="value">-</div></div>
+        <div class="kpi-tile"><label>TOTAL HC</label><div id="totalHeadcount" class="value">-</div></div>
+        <div class="kpi-tile"><label>MONTHLY COST</label><div id="monthlyCost" class="value">-</div></div>
+        <div class="kpi-tile"><label>YTD COST</label><div id="ytdCost" class="value">-</div></div>
+        <div class="kpi-tile"><label>ANNUAL PROJECTED</label><div id="annualCost" class="value">-</div></div>
     </div>
-    <script src="script.js"></script>
-</body>
-</html>
+    
+    <!-- Tables and Charts below... -->
+</div>
