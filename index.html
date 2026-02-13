@@ -1,46 +1,257 @@
-<!-- Save as index.html -->
-<div id="loginScreen" class="login-screen">
-    <h1 class="brand-title">SABYASACHI</h1>
-    <p class="brand-subtitle">MANPOWER COST DASHBOARD</p>
-    <form id="loginForm" class="login-form">
-        <input type="email" id="email" placeholder="EMAIL ADDRESS" required>
-        <input type="password" id="password" placeholder="PASSWORD" required>
-        <button type="submit" class="login-btn">ENTER</button>
-    </form>
-</div>
-
-<div id="mainDashboard" class="dashboard-container" style="display: none;">
-    <header class="main-header">
-        <div class="brand-title" style="font-size: 1.5rem;">SABYASACHI</div>
-        <div class="header-right">
-            <div id="adminControls" style="display: none;">
-                <label for="fileInput" class="action-link">UPLOAD DATA</label>
-                <input type="file" id="fileInput" style="display:none" onchange="handleFile(event)">
-            </div>
-            <button onclick="location.reload()" class="logout-btn">LOGOUT</button>
-        </div>
-    </header>
-
-    <div class="filter-bar">
-        <select id="cohortFilter" class="filter-select" multiple data-placeholder="COHORT"></select>
-        <select id="typeFilter" class="filter-select" multiple data-placeholder="EMPLOYEE TYPE">
-            <option>Management</option>
-            <option>Non Management</option>
-            <option>Consultant</option>
-        </select>
-        <select id="levelFilter" class="filter-select" multiple data-placeholder="LEVEL"></select>
-        <input type="date" id="startDate" class="date-input">
-        <input type="date" id="endDate" class="date-input">
-    </div>
-
-    <div class="kpi-row">
-        <div class="kpi-tile"><label>ACTIVE HC</label><div id="currentHeadcount" class="value">-</div></div>
-        <div class="kpi-tile"><label>TO BE HIRED</label><div id="toBeHired" class="value">-</div></div>
-        <div class="kpi-tile"><label>TOTAL HC</label><div id="totalHeadcount" class="value">-</div></div>
-        <div class="kpi-tile"><label>MONTHLY COST</label><div id="monthlyCost" class="value">-</div></div>
-        <div class="kpi-tile"><label>YTD COST</label><div id="ytdCost" class="value">-</div></div>
-        <div class="kpi-tile"><label>ANNUAL PROJECTED</label><div id="annualCost" class="value">-</div></div>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sabyasachi | Manpower Cost Dashboard</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     
-    <!-- Tables and Charts below... -->
-</div>
+    <style>
+        :root {
+            --sab-black: #000000;
+            --sab-white: #ffffff;
+            --sab-gold: #AD9651; /* Sabyasachi Antique Gold */
+            --sab-gray: #F4F4F4;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--sab-white);
+            color: var(--sab-black);
+            overflow-x: hidden;
+        }
+
+        /* --- LOGIN SCREEN --- */
+        #loginScreen {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--sab-black);
+            color: var(--sab-white);
+            text-align: center;
+        }
+
+        .login-box { width: 100%; max-width: 350px; padding: 20px; }
+        
+        .brand-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            letter-spacing: 12px;
+            margin-bottom: 5px;
+        }
+
+        .brand-sub {
+            font-size: 0.7rem;
+            letter-spacing: 4px;
+            margin-bottom: 50px;
+            color: var(--sab-gold);
+        }
+
+        .login-form input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--sab-gold);
+            color: white;
+            padding: 12px;
+            margin-bottom: 25px;
+            outline: none;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--sab-gold);
+            color: var(--sab-black);
+            border: none;
+            font-weight: 600;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.4s;
+        }
+
+        .login-btn:hover { background: var(--sab-white); }
+
+        /* --- DASHBOARD UI --- */
+        #mainDashboard { display: none; padding: 30px; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 1px solid var(--sab-black);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .header h2 { font-family: 'Playfair Display', serif; letter-spacing: 3px; }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: var(--sab-gray);
+            align-items: center;
+        }
+
+        select, .date-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        /* Single Line KPI Tiles */
+        .kpi-row {
+            display: flex;
+            gap: 1px;
+            background: var(--sab-black);
+            border: 1px solid var(--sab-black);
+            margin-bottom: 30px;
+        }
+
+        .kpi-tile {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .kpi-tile label {
+            display: block;
+            font-size: 0.6rem;
+            letter-spacing: 1px;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .kpi-tile .value {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .admin-only { display: none; }
+        .upload-link { color: var(--sab-gold); font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-right: 15px; }
+        .logout-btn { background: none; border: 1px solid black; padding: 5px 10px; cursor: pointer; font-size: 0.7rem; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Login Screen -->
+    <div id="loginScreen">
+        <div class="login-box">
+            <h1 class="brand-logo">SABYASACHI</h1>
+            <p class="brand-sub">MANPOWER COST DASHBOARD</p>
+            <form id="loginForm" class="login-form">
+                <label for="email" style="display:none">Email</label>
+                <input type="email" id="email" placeholder="EMAIL ADDRESS" required autocomplete="email">
+                
+                <label for="password" style="display:none">Password</label>
+                <input type="password" id="password" placeholder="PASSWORD" required autocomplete="current-password">
+                
+                <button type="submit" class="login-btn">ENTER</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="mainDashboard">
+        <header class="header">
+            <h2>SABYASACHI</h2>
+            <div>
+                <span id="adminControls" class="admin-only">
+                    <label class="upload-link" for="fileInput">UPLOAD MASTER</label>
+                    <input type="file" id="fileInput" style="display:none">
+                </span>
+                <button class="logout-btn" onclick="logout()">LOGOUT</button>
+            </div>
+        </header>
+
+        <div class="filters">
+            <select id="cohortFilter"><option>All Cohorts</option></select>
+            <select id="typeFilter">
+                <option>All Types</option>
+                <option>Management</option>
+                <option>Non-Management</option>
+                <option>Consultant</option>
+            </select>
+            <select id="levelFilter"><option>All Levels</option></select>
+            <input type="date" id="startDate" class="date-input">
+            <input type="date" id="endDate" class="date-input">
+        </div>
+
+        <div class="kpi-row">
+            <div class="kpi-tile"><label>Active HC</label><div id="hc-active" class="value">0</div></div>
+            <div class="kpi-tile"><label>Planned</label><div id="hc-planned" class="value">0</div></div>
+            <div class="kpi-tile"><label>Monthly Cost</label><div id="cost-monthly" class="value">₹0</div></div>
+            <div class="kpi-tile"><label>YTD Cost</label><div id="cost-ytd" class="value">₹0</div></div>
+            <div class="kpi-tile"><label>Annual Projection</label><div id="cost-annual" class="value">₹0</div></div>
+        </div>
+        
+        <p style="text-align: center; color: #999; font-size: 0.8rem;">Data updates automatically on filter change.</p>
+    </div>
+
+    <script>
+        const VALID_USERS = {
+            'admin@sabyasachi.com': 'admin123',
+            'hr@sabyasachi.com': 'sabyasachi2025'
+        };
+
+        // Initialize App
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const pass = document.getElementById('password').value.trim();
+
+            if (VALID_USERS[email] && VALID_USERS[email] === pass) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('userEmail', email);
+                loadDashboard(email);
+            } else {
+                alert("Access Denied: Invalid Credentials");
+            }
+        });
+
+        function loadDashboard(email) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainDashboard').style.display = 'block';
+
+            // Check Admin Status
+            if (email === 'admin@sabyasachi.com') {
+                document.getElementById('adminControls').style.display = 'inline-block';
+            }
+
+            // Set FY Dates
+            const now = new Date();
+            const startYear = now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
+            document.getElementById('startDate').value = `${startYear}-04-01`;
+            document.getElementById('endDate').valueAsDate = now;
+        }
+
+        function logout() {
+            sessionStorage.clear();
+            location.reload();
+        }
+
+        // Check if already logged in on refresh
+        window.onload = function() {
+            const loggedIn = sessionStorage.getItem('isLoggedIn');
+            const email = sessionStorage.getItem('userEmail');
+            if (loggedIn === 'true') {
+                loadDashboard(email);
+            }
+        };
+    </script>
+</body>
+</html>
