@@ -4,254 +4,224 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sabyasachi | Manpower Cost Dashboard</title>
-    <!-- Fonts -->
+    <!-- SheetJS for Excel Uploads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
-        :root {
-            --sab-black: #000000;
-            --sab-white: #ffffff;
-            --sab-gold: #AD9651; /* Sabyasachi Antique Gold */
-            --sab-gray: #F4F4F4;
-        }
-
+        :root { --sab-black: #000000; --sab-white: #ffffff; --sab-gold: #AD9651; --sab-gray: #F8F8F8; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--sab-white); color: var(--sab-black); }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--sab-white);
-            color: var(--sab-black);
-            overflow-x: hidden;
-        }
+        /* --- LOGIN --- */
+        #loginScreen { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--sab-black); color: white; text-align: center; }
+        .brand-logo { font-family: 'Playfair Display', serif; font-size: 3.5rem; letter-spacing: 12px; margin-bottom: 40px; }
+        .login-form input { width: 300px; background: transparent; border: none; border-bottom: 1px solid var(--sab-gold); color: white; padding: 12px; margin-bottom: 20px; outline: none; text-align: center; }
+        .login-btn { width: 300px; padding: 15px; background: var(--sab-gold); color: black; border: none; font-weight: 600; cursor: pointer; letter-spacing: 2px; }
 
-        /* --- LOGIN SCREEN --- */
-        #loginScreen {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: var(--sab-black);
-            color: var(--sab-white);
-            text-align: center;
-        }
-
-        .login-box { width: 100%; max-width: 350px; padding: 20px; }
-        
-        .brand-logo {
-            font-family: 'Playfair Display', serif;
-            font-size: 3.5rem;
-            letter-spacing: 12px;
-            margin-bottom: 5px;
-        }
-
-        .brand-sub {
-            font-size: 0.7rem;
-            letter-spacing: 4px;
-            margin-bottom: 50px;
-            color: var(--sab-gold);
-        }
-
-        .login-form input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            border-bottom: 1px solid var(--sab-gold);
-            color: white;
-            padding: 12px;
-            margin-bottom: 25px;
-            outline: none;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        .login-btn {
-            width: 100%;
-            padding: 15px;
-            background: var(--sab-gold);
-            color: var(--sab-black);
-            border: none;
-            font-weight: 600;
-            letter-spacing: 2px;
-            cursor: pointer;
-            transition: 0.4s;
-        }
-
-        .login-btn:hover { background: var(--sab-white); }
-
-        /* --- DASHBOARD UI --- */
+        /* --- DASHBOARD --- */
         #mainDashboard { display: none; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid black; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h2 { font-family: 'Playfair Display', serif; letter-spacing: 4px; }
+        
+        /* Stats Bar */
+        .status-bar { display: flex; justify-content: flex-end; gap: 20px; font-size: 0.7rem; margin-bottom: 10px; color: #666; }
+        #successTag { color: var(--sab-gold); font-weight: bold; display: none; }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            border-bottom: 1px solid var(--sab-black);
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-        }
+        /* Filters */
+        .filter-bar { display: flex; gap: 10px; background: var(--sab-gray); padding: 15px; margin-bottom: 25px; align-items: center; flex-wrap: wrap; }
+        select, input[type="date"] { padding: 8px; border: 1px solid #ddd; font-size: 0.75rem; outline: none; background: white; }
 
-        .header h2 { font-family: 'Playfair Display', serif; letter-spacing: 3px; }
+        /* KPI Tiles */
+        .kpi-row { display: flex; gap: 1px; background: black; border: 1px solid black; margin-bottom: 30px; }
+        .kpi-tile { flex: 1; background: white; padding: 25px 10px; text-align: center; }
+        .kpi-tile label { display: block; font-size: 0.6rem; letter-spacing: 1px; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+        .kpi-tile .value { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; }
 
-        .filters {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            padding: 15px;
-            background: var(--sab-gray);
-            align-items: center;
-        }
-
-        select, .date-input {
-            padding: 8px;
-            border: 1px solid #ddd;
-            font-size: 0.8rem;
-            outline: none;
-        }
-
-        /* Single Line KPI Tiles */
-        .kpi-row {
-            display: flex;
-            gap: 1px;
-            background: var(--sab-black);
-            border: 1px solid var(--sab-black);
-            margin-bottom: 30px;
-        }
-
-        .kpi-tile {
-            flex: 1;
-            background: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .kpi-tile label {
-            display: block;
-            font-size: 0.6rem;
-            letter-spacing: 1px;
-            color: #666;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-
-        .kpi-tile .value {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.4rem;
-            font-weight: 700;
-        }
-
-        .admin-only { display: none; }
-        .upload-link { color: var(--sab-gold); font-size: 0.8rem; cursor: pointer; text-decoration: underline; margin-right: 15px; }
-        .logout-btn { background: none; border: 1px solid black; padding: 5px 10px; cursor: pointer; font-size: 0.7rem; }
-
+        .admin-controls { display: none; }
+        .upload-btn { color: var(--sab-gold); font-size: 0.75rem; cursor: pointer; text-decoration: underline; font-weight: 600; }
+        .logout-btn { border: 1px solid black; padding: 5px 12px; font-size: 0.7rem; cursor: pointer; background: white; }
     </style>
 </head>
 <body>
 
-    <!-- Login Screen -->
     <div id="loginScreen">
-        <div class="login-box">
-            <h1 class="brand-logo">SABYASACHI</h1>
-            <p class="brand-sub">MANPOWER COST DASHBOARD</p>
-            <form id="loginForm" class="login-form">
-                <label for="email" style="display:none">Email</label>
-                <input type="email" id="email" placeholder="EMAIL ADDRESS" required autocomplete="email">
-                
-                <label for="password" style="display:none">Password</label>
-                <input type="password" id="password" placeholder="PASSWORD" required autocomplete="current-password">
-                
-                <button type="submit" class="login-btn">ENTER</button>
-            </form>
-        </div>
+        <h1 class="brand-logo">SABYASACHI</h1>
+        <form id="loginForm" class="login-form">
+            <input type="email" id="email" placeholder="EMAIL ADDRESS" required>
+            <input type="password" id="password" placeholder="PASSWORD" required>
+            <button type="submit" class="login-btn">ENTER</button>
+        </form>
     </div>
 
-    <!-- Main Dashboard -->
     <div id="mainDashboard">
+        <div class="status-bar">
+            <span id="successTag">✓ UPDATE SUCCESSFUL</span>
+            <span id="lastUpdateText">Last Updated: Never</span>
+        </div>
+        
         <header class="header">
             <h2>SABYASACHI</h2>
             <div>
-                <span id="adminControls" class="admin-only">
-                    <label class="upload-link" for="fileInput">UPLOAD MASTER</label>
-                    <input type="file" id="fileInput" style="display:none">
+                <span id="adminControls" class="admin-controls">
+                    <label class="upload-btn" for="fileInput">UPLOAD MASTER (.XLSX)</label>
+                    <input type="file" id="fileInput" style="display:none" onchange="handleExcel(event)">
                 </span>
                 <button class="logout-btn" onclick="logout()">LOGOUT</button>
             </div>
         </header>
 
-        <div class="filters">
-            <select id="cohortFilter"><option>All Cohorts</option></select>
-            <select id="typeFilter">
-                <option>All Types</option>
-                <option>Management</option>
-                <option>Non-Management</option>
-                <option>Consultant</option>
-            </select>
-            <select id="levelFilter"><option>All Levels</option></select>
-            <input type="date" id="startDate" class="date-input">
-            <input type="date" id="endDate" class="date-input">
+        <div class="filter-bar">
+            <select id="cohortFilter" onchange="calculate()"><option value="">All Cohorts</option></select>
+            <select id="deptFilter" onchange="calculate()"><option value="">All Departments</option></select>
+            <select id="typeFilter" onchange="calculate()"><option value="">All Types</option></select>
+            <select id="levelFilter" onchange="calculate()"><option value="">All Levels</option></select>
+            <span style="font-size: 0.7rem; margin-left: 10px;">Select Date Range:</span>
+            <input type="date" id="startDate" onchange="calculate()">
+            <input type="date" id="endDate" onchange="calculate()">
         </div>
 
         <div class="kpi-row">
-            <div class="kpi-tile"><label>Active HC</label><div id="hc-active" class="value">0</div></div>
-            <div class="kpi-tile"><label>Planned</label><div id="hc-planned" class="value">0</div></div>
+            <div class="kpi-tile"><label>Current HC</label><div id="hc-active" class="value">0</div></div>
+            <div class="kpi-tile"><label>To Be Hired</label><div id="hc-planned" class="value">0</div></div>
+            <div class="kpi-tile"><label>Total HC</label><div id="hc-total" class="value">0</div></div>
             <div class="kpi-tile"><label>Monthly Cost</label><div id="cost-monthly" class="value">₹0</div></div>
             <div class="kpi-tile"><label>YTD Cost</label><div id="cost-ytd" class="value">₹0</div></div>
-            <div class="kpi-tile"><label>Annual Projection</label><div id="cost-annual" class="value">₹0</div></div>
+            <div class="kpi-tile"><label>Annual Projected</label><div id="cost-annual" class="value">₹0</div></div>
         </div>
-        
-        <p style="text-align: center; color: #999; font-size: 0.8rem;">Data updates automatically on filter change.</p>
     </div>
 
     <script>
-        const VALID_USERS = {
-            'admin@sabyasachi.com': 'admin123',
-            'hr@sabyasachi.com': 'sabyasachi2025'
-        };
+        let MASTER_DATA = [];
+        const USERS = { 'admin@sabyasachi.com': 'admin123' };
 
-        // Initialize App
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value.trim();
-            const pass = document.getElementById('password').value.trim();
-
-            if (VALID_USERS[email] && VALID_USERS[email] === pass) {
-                sessionStorage.setItem('isLoggedIn', 'true');
-                sessionStorage.setItem('userEmail', email);
-                loadDashboard(email);
-            } else {
-                alert("Access Denied: Invalid Credentials");
-            }
+            const email = document.getElementById('email').value;
+            if (USERS[email] === document.getElementById('password').value) {
+                sessionStorage.setItem('user', email);
+                init(email);
+            } else { alert("Invalid Credentials"); }
         });
 
-        function loadDashboard(email) {
+        function init(email) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainDashboard').style.display = 'block';
-
-            // Check Admin Status
-            if (email === 'admin@sabyasachi.com') {
-                document.getElementById('adminControls').style.display = 'inline-block';
-            }
-
-            // Set FY Dates
+            if (email === 'admin@sabyasachi.com') document.getElementById('adminControls').style.display = 'inline';
+            
             const now = new Date();
-            const startYear = now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
-            document.getElementById('startDate').value = `${startYear}-04-01`;
+            const fyStart = now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
+            document.getElementById('startDate').value = `${fyStart}-04-01`;
             document.getElementById('endDate').valueAsDate = now;
         }
 
-        function logout() {
-            sessionStorage.clear();
-            location.reload();
+        function handleExcel(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const workbook = XLSX.read(event.target.result, { type: 'binary', cellDates: true });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet);
+                
+                // Map and Clean Data
+                MASTER_DATA = json.map(row => ({
+                    code: row['Employee Code'],
+                    cohort: row['Cohort'],
+                    dept: row['Department'],
+                    type: row['Employee Type'],
+                    level: row['Level'],
+                    doj: new Date(row['Date of Joining']),
+                    dol: row['Date of Leaving'] ? new Date(row['Date of Leaving']) : null,
+                    ctc: parseFloat(String(row['Annual CTC']).replace(/,/g, '')) || 0,
+                    status: row['Status']
+                }));
+
+                populateFilters();
+                calculate();
+                
+                // Success Indicators
+                document.getElementById('successTag').style.display = 'inline';
+                document.getElementById('lastUpdateText').innerText = "Last Updated: " + new Date().toLocaleTimeString();
+                setTimeout(() => document.getElementById('successTag').style.display = 'none', 3000);
+            };
+            reader.readAsBinaryString(file);
         }
 
-        // Check if already logged in on refresh
-        window.onload = function() {
-            const loggedIn = sessionStorage.getItem('isLoggedIn');
-            const email = sessionStorage.getItem('userEmail');
-            if (loggedIn === 'true') {
-                loadDashboard(email);
-            }
-        };
+        function populateFilters() {
+            const fill = (id, key) => {
+                const vals = [...new Set(MASTER_DATA.map(d => d[key]))].sort();
+                const el = document.getElementById(id);
+                el.innerHTML = `<option value="">All ${key.charAt(0).toUpperCase() + key.slice(1)}s</option>`;
+                vals.forEach(v => el.innerHTML += `<option value="${v}">${v}</option>`);
+            };
+            fill('cohortFilter', 'cohort');
+            fill('deptFilter', 'dept');
+            fill('typeFilter', 'type');
+            fill('levelFilter', 'level');
+        }
+
+        function calculate() {
+            const start = new Date(document.getElementById('startDate').value);
+            const end = new Date(document.getElementById('endDate').value);
+            
+            const cohort = document.getElementById('cohortFilter').value;
+            const dept = document.getElementById('deptFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            const level = document.getElementById('levelFilter').value;
+
+            let filtered = MASTER_DATA.filter(d => 
+                (!cohort || d.cohort === cohort) &&
+                (!dept || d.dept === dept) &&
+                (!type || d.type === type) &&
+                (!level || d.level === level)
+            );
+
+            let activeHC = 0, vacancyHC = 0, monthlyCost = 0, ytdCost = 0;
+
+            filtered.forEach(emp => {
+                const doj = emp.doj;
+                const dol = emp.dol || new Date(2099, 11, 31);
+                
+                // Is Active at selected End Date
+                if (doj <= end && dol >= end && emp.status === 'Active') {
+                    activeHC++;
+                    monthlyCost += (emp.ctc / 12);
+                }
+                if (emp.status === 'Vacancy' || emp.status === 'Planned') vacancyHC++;
+
+                // YTD: From April 1st to End Date
+                const fyStart = new Date(end.getMonth() < 3 ? end.getFullYear() - 1 : end.getFullYear(), 3, 1);
+                let runner = new Date(fyStart);
+                while (runner <= end) {
+                    const mStart = new Date(runner.getFullYear(), runner.getMonth(), 1);
+                    const mEnd = new Date(runner.getFullYear(), runner.getMonth() + 1, 0);
+                    if (doj <= mEnd && dol >= mStart && emp.status === 'Active') {
+                        ytdCost += (emp.ctc / 12);
+                    }
+                    runner.setMonth(runner.setMonth() + 1);
+                }
+            });
+
+            // Projection: YTD + (Monthly * Months left until March 31)
+            const fyEnd = new Date(end.getMonth() < 3 ? end.getFullYear() : end.getFullYear() + 1, 2, 31);
+            const monthsLeft = (fyEnd.getFullYear() - end.getFullYear()) * 12 + (fyEnd.getMonth() - end.getMonth());
+            const annualProjected = ytdCost + (monthlyCost * monthsLeft);
+
+            document.getElementById('hc-active').innerText = activeHC;
+            document.getElementById('hc-planned').innerText = vacancyHC;
+            document.getElementById('hc-total').innerText = activeHC + vacancyHC;
+            document.getElementById('cost-monthly').innerText = format(monthlyCost);
+            document.getElementById('cost-ytd').innerText = format(ytdCost);
+            document.getElementById('cost-annual').innerText = format(annualProjected);
+        }
+
+        function format(num) {
+            if (num >= 10000000) return "₹" + (num / 10000000).toFixed(2) + " Cr";
+            if (num >= 100000) return "₹" + (num / 100000).toFixed(2) + " L";
+            return "₹" + Math.round(num).toLocaleString('en-IN');
+        }
+
+        function logout() { sessionStorage.clear(); location.reload(); }
     </script>
 </body>
 </html>
