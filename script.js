@@ -1,90 +1,97 @@
-// admin@sabyasachi.com
-// Pass: admin123
+// Save as script.js
+const USERS = {
+    'admin@sabyasachi.com': 'admin123',
+    'hr@sabyasachi.com': 'sabyasachi2024'
+};
 
-let rawEmployeeData = [];
-let filteredData = [];
+let masterData = [];
+let currentFYData = [];
 
-// ... [Existing Login Logic but add this check] ...
-function showDashboard() {
+// --- LOGIN LOGIC ---
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = document.getElementById('email').value;
+    const pass = document.getElementById('password').value;
+
+    if (USERS[email] === pass) {
+        sessionStorage.setItem('userEmail', email);
+        initDashboard();
+    } else {
+        alert("Invalid Credentials");
+    }
+});
+
+function initDashboard() {
+    const email = sessionStorage.getItem('userEmail');
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainDashboard').style.display = 'block';
-    
-    // ADMIN ACCESS CONTROL
-    if (currentUser.email === 'admin@sabyasachi.com') {
-        document.getElementById('adminControls').style.display = 'block';
+
+    // Admin only upload
+    if (email === 'admin@sabyasachi.com') {
+        document.getElementById('adminControls').style.display = 'inline';
     }
-    
-    initializeFilters();
+
+    // Initialize Select2 and Date defaults
+    const today = new Date();
+    document.getElementById('endDate').valueAsDate = today;
+    const fyStart = today.getMonth() < 3 ? today.getFullYear() - 1 : today.getFullYear();
+    document.getElementById('startDate').value = `${fyStart}-04-01`;
 }
 
-// ========== ACCURATE CALCULATIONS ==========
-
+// --- CALCULATION CORE ---
 function calculateMetrics() {
-    const startRange = new Date(document.getElementById('startDate').value);
-    const endRange = new Date(document.getElementById('endDate').value);
+    const startDate = new Date(document.getElementById('startDate').value);
+    const endDate = new Date(document.getElementById('endDate').value);
     
-    // 1. Headcounts (As of End Date)
-    const activeHC = filteredData.filter(e => 
-        e.status === 'Active' && 
-        new Date(e.dateOfJoining) <= endRange && 
-        (!e.dateOfLeaving || new Date(e.dateOfLeaving) > endRange)
-    ).length;
+    // FY Start for YTD (April 1st)
+    const fyStartDate = new Date(endDate.getMonth() < 3 ? endDate.getFullYear() - 1 : endDate.getFullYear(), 3, 1);
 
-    const plannedHC = filteredData.filter(e => e.status === 'Vacancy' || e.status === 'Planned').length;
+    let activeHC = 0;
+    let plannedHC = 0;
+    let monthlyCostTotal = 0;
+    let ytdCostTotal = 0;
 
-    // 2. Monthly Cost (For the month of the End Date)
-    const monthlyCost = getMonthlyTotal(filteredData, endRange);
+    masterData.forEach(emp => {
+        const doj = new Date(emp.DOJ);
+        const dol = emp.DOL ? new Date(emp.DOL) : new Date(2099, 11, 31);
+        
+        // 1. Is Active during the current month selected?
+        if (doj <= endDate && dol >= endDate && emp.Status === 'Active') {
+            activeHC++;
+            monthlyCostTotal += (emp.CTC / 12);
+        }
 
-    // 3. YTD Cost (From April 1st of selected FY to End Date)
-    const fyStartDate = getFYStart(endRange);
-    const ytdCost = getRangeTotal(filteredData, fyStartDate, endRange);
+        if (emp.Status === 'Vacancy') plannedHC++;
 
-    // 4. Annual Projection (YTD + Projected months until March 31st)
+        // 2. YTD Calculation (April to Selected End Date)
+        // We calculate per month to handle mid-year joining/leaving
+        let tempDate = new Date(fyStartDate);
+        while (tempDate <= endDate) {
+            const mStart = new Date(tempDate.getFullYear(), tempDate.getMonth(), 1);
+            const mEnd = new Date(tempDate.getFullYear(), tempDate.getMonth() + 1, 0);
+            if (doj <= mEnd && dol >= mStart && emp.Status === 'Active') {
+                ytdCostTotal += (emp.CTC / 12);
+            }
+            tempDate.setMonth(tempDate.getMonth() + 1);
+        }
+    });
+
+    // 3. Annual Projection
+    // (YTD actuals) + (Current Monthly Cost * Months left in FY)
     const fyEndDate = new Date(fyStartDate.getFullYear() + 1, 2, 31);
-    const monthsRemaining = Math.max(0, (fyEndDate.getFullYear() - endRange.getFullYear()) * 12 + (fyEndDate.getMonth() - endRange.getMonth()));
-    const projectedAnnual = ytdCost + (monthlyCost * monthsRemaining);
+    const monthsLeft = (fyEndDate.getFullYear() - endDate.getFullYear()) * 12 + (fyEndDate.getMonth() - endDate.getMonth());
+    const annualProjected = ytdCostTotal + (monthlyCostTotal * monthsLeft);
 
-    // Update UI
+    // Update Tiles
     document.getElementById('currentHeadcount').innerText = activeHC;
     document.getElementById('toBeHired').innerText = plannedHC;
     document.getElementById('totalHeadcount').innerText = activeHC + plannedHC;
-    document.getElementById('monthlyCost').innerText = formatCurrency(monthlyCost);
-    document.getElementById('ytdCost').innerText = formatCurrency(ytdCost);
-    document.getElementById('annualCost').innerText = formatCurrency(projectedAnnual);
-
-    updateTables(fyStartDate, endRange);
-    updateFYChart();
+    document.getElementById('monthlyCost').innerText = formatCr(monthlyCostTotal);
+    document.getElementById('ytdCost').innerText = formatCr(ytdCostTotal);
+    document.getElementById('annualCost').innerText = formatCr(annualProjected);
 }
 
-function getMonthlyTotal(emps, date) {
-    const mStart = new Date(date.getFullYear(), date.getMonth(), 1);
-    const mEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-    
-    return emps.reduce((acc, emp) => {
-        const join = new Date(emp.dateOfJoining);
-        const leave = emp.dateOfLeaving ? new Date(emp.dateOfLeaving) : new Date(2099, 1, 1);
-        
-        if (join <= mEnd && leave >= mStart) {
-            // Simple monthly logic: if active during month, count full month (or use pro-rata)
-            return acc + (emp.annualCTC / 12);
-        }
-        return acc;
-    }, 0);
+function formatCr(amt) {
+    if (amt >= 10000000) return "₹" + (amt / 10000000).toFixed(2) + " Cr";
+    return "₹" + (amt / 100000).toFixed(2) + " L";
 }
-
-function getRangeTotal(emps, start, end) {
-    let total = 0;
-    let curr = new Date(start);
-    while (curr <= end) {
-        total += getMonthlyTotal(emps, curr);
-        curr.setMonth(curr.getMonth() + 1);
-    }
-    return total;
-}
-
-function getFYStart(date) {
-    const year = date.getFullYear();
-    return date.getMonth() < 3 ? new Date(year - 1, 3, 1) : new Date(year, 3, 1);
-}
-
-// ... [Add Table Update and Chart functions here] ...
