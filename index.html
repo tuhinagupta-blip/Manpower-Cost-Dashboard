@@ -3,319 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sabyasachi | Manpower Cost Dashboard</title>
-    <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <title>Sabyasachi Manpower Budgeting Dashboard</title>
+    <!-- Tailwind CSS for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js for Logic -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- SheetJS for Excel Parsing/Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js for Visuals -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <style>
-        :root { --sab-black: #000000; --sab-white: #ffffff; --sab-gold: #AD9651; --sab-gray: #F4F4F4; }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body { 
-            font-family: 'Calibri', 'Arial', sans-serif; 
-            background-color: var(--sab-white); 
-            color: var(--sab-black);
-            font-size: 14px;
-        }
-
-        /* Login Screen */
-        #loginScreen { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--sab-black); color: white; }
-        .brand-logo-large { font-size: 3.5rem; letter-spacing: 12px; margin-bottom: 30px; font-weight: bold; }
-        .login-form input { width: 300px; background: transparent; border: none; border-bottom: 1px solid var(--sab-gold); color: white; padding: 12px; margin-bottom: 20px; outline: none; text-align: center; font-family: 'Calibri'; }
-        .login-btn { width: 300px; padding: 15px; background: var(--sab-gold); color: black; border: none; font-weight: bold; cursor: pointer; letter-spacing: 2px; font-family: 'Calibri'; }
-
-        /* Dashboard UI */
-        #mainDashboard { display: none; padding: 20px 40px; }
-        .top-meta { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; padding-bottom: 5px; }
-        .welcome-msg { font-style: italic; color: var(--sab-black); }
-
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 10px; }
-        .header h1 { letter-spacing: 3px; font-size: 1.8rem; text-transform: uppercase; font-weight: bold; }
-        
-        /* Multi-Choice Filter Bar */
-        .filter-bar { 
-            display: flex; 
-            gap: 12px; 
-            background: var(--sab-gray); 
-            padding: 20px; 
-            margin-bottom: 20px; 
-            align-items: flex-end;
-            border: 1px solid #ddd;
-        }
-        .filter-group { display: flex; flex-direction: column; flex: 1; }
-        .filter-group label { font-size: 0.75rem; color: #555; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
-        .filter-group span { font-size: 0.6rem; color: #999; margin-top: 2px; }
-        
-        select[multiple] { 
-            height: 60px; 
-            padding: 5px; 
-            border: 1px solid #ccc; 
-            font-family: 'Calibri'; 
-            font-size: 0.85rem;
-            background: white;
-        }
-        
-        .date-input { padding: 8px; border: 1px solid #ccc; font-family: 'Calibri'; }
-        
-        .refresh-btn {
-            background: var(--sab-black);
-            color: white;
-            border: none;
-            padding: 0 25px;
-            font-weight: bold;
-            cursor: pointer;
-            height: 60px;
-            letter-spacing: 1px;
-            font-family: 'Calibri';
-        }
-        .refresh-btn:hover { background: var(--sab-gold); color: black; }
-
-        /* KPI Tiles */
-        .kpi-row { display: flex; gap: 1px; background: black; border: 1px solid black; margin-bottom: 25px; }
-        .kpi-tile { flex: 1; background: white; padding: 25px 15px; text-align: center; }
-        .kpi-tile label { display: block; font-size: 0.75rem; color: #888; text-transform: uppercase; margin-bottom: 10px; font-weight: bold; }
-        .kpi-tile .value { font-size: 2rem; font-weight: bold; }
-
-        /* Tables */
-        .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 30px; }
-        .card { background: white; border: 1px solid #eee; padding: 20px; }
-        .card h4 { font-size: 0.9rem; border-bottom: 1px solid black; padding-bottom: 8px; margin-bottom: 15px; font-weight: bold; }
-        
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 8px 0; color: #888; font-size: 0.8rem; border-bottom: 1px solid #ddd; }
-        td { padding: 10px 0; border-bottom: 1px solid #f9f9f9; font-size: 0.9rem; }
-
-        /* Calculation Logic Section */
-        .logic-note { background: #fffcf0; padding: 15px; border: 1px solid #f0e6bc; font-size: 0.8rem; margin-bottom: 20px; color: #555; }
-
-        .upload-btn { color: var(--sab-gold); font-weight: bold; cursor: pointer; text-decoration: underline; margin-right: 20px; }
-        .logout-btn { border: 1px solid black; padding: 5px 15px; cursor: pointer; background: white; font-family: Calibri; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .sabyasachi-gold { color: #9c844c; }
+        .bg-sabyasachi { background-color: #1a1a1a; }
+        .card { border-radius: 8px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
     </style>
 </head>
 <body>
-
-    <div id="loginScreen">
-        <h1 class="brand-logo-large">SABYASACHI</h1>
-        <form id="loginForm">
-            <input type="email" id="email" placeholder="ADMIN EMAIL" required>
-            <input type="password" id="password" placeholder="PASSWORD" required>
-            <button type="submit" class="login-btn">ENTER</button>
-        </form>
-    </div>
-
-    <div id="mainDashboard">
-        <div class="top-meta">
-            <span class="welcome-msg" id="welcomeUser">Welcome</span>
-            <span id="lastUpdateText">Last Updated: Never</span>
-        </div>
-        
-        <header class="header">
-            <h1>Manpower Cost Dashboard</h1>
-            <div>
-                <label class="upload-btn" for="fileInput">UPLOAD MASTER</label>
-                <input type="file" id="fileInput" style="display:none" onchange="handleExcel(event)">
-                <button class="logout-btn" onclick="location.reload()">LOGOUT</button>
+    <div id="app" class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-sabyasachi text-white p-6 shadow-xl">
+            <div class="max-w-7xl mx-auto flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-light tracking-widest uppercase">Sabyasachi</h1>
+                    <p class="text-xs text-gray-400 mt-1 uppercase tracking-tighter">Manpower Budgeting & Cost Tracker</p>
+                </div>
+                <div class="flex gap-4">
+                    <label class="cursor-pointer bg-[#9c844c] hover:bg-[#867140] px-4 py-2 rounded text-sm font-semibold transition">
+                        Upload Excel
+                        <input type="file" @change="handleFileUpload" class="hidden" accept=".xlsx, .xls">
+                    </label>
+                    <button @click="exportData" v-if="processedData.length" class="border border-gray-600 hover:bg-gray-800 px-4 py-2 rounded text-sm transition">
+                        Export Report
+                    </button>
+                </div>
             </div>
         </header>
 
-        <div class="logic-note">
-            <strong>Calculation Methodology:</strong> <br>
-            • <strong>Current HC:</strong> Total Count of 'Active' + 'Serving Notice' employees as of Analysis Date.<br>
-            • <strong>Monthly Cost:</strong> (Annual CTC / 12) adjusted by pro-rata days if DOJ/DOL falls within the month.<br>
-            • <strong>YTD Cost:</strong> Cumulative manpower spend from selected FY Start Date to Analysis Date.
-        </div>
+        <main class="max-w-7xl mx-auto p-6">
+            <!-- Initial State -->
+            <div v-if="!processedData.length" class="flex flex-col items-center justify-center py-20 border-2 border-dashed border-gray-300 rounded-xl bg-white">
+                <p class="text-gray-500 mb-4 text-lg">No data loaded. Please upload your masked CTC Excel file.</p>
+                <div class="text-sm text-gray-400 bg-gray-50 p-4 rounded border">
+                    <strong>Required Columns:</strong> Employee ID, Annual CTC, Date of Joining, Date of Leaving, Department, Cohort, Cadre
+                </div>
+            </div>
 
-        <div class="filter-bar">
-            <div class="filter-group"><label>Cohort</label><select id="cohortFilter" multiple></select><span>Hold Ctrl to select multiple</span></div>
-            <div class="filter-group"><label>Department</label><select id="deptFilter" multiple></select><span>Hold Ctrl to select multiple</span></div>
-            <div class="filter-group"><label>Employee Type</label><select id="typeFilter" multiple></select><span>Hold Ctrl to select multiple</span></div>
-            <div class="filter-group"><label>Level</label><select id="levelFilter" multiple></select><span>Hold Ctrl to select multiple</span></div>
-            <div class="filter-group"><label>FY Start</label><input type="date" id="startDate" class="date-input"></div>
-            <div class="filter-group"><label>Analysis Date</label><input type="date" id="endDate" class="date-input"></div>
-            <button class="refresh-btn" onclick="calculate()">REFRESH<br>DATA</button>
-        </div>
+            <div v-else>
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs uppercase font-bold">Total Headcount</p>
+                        <p class="text-2xl font-bold">{{ stats.totalHeadcount }}</p>
+                        <p class="text-[10px] text-gray-400">Active: {{ stats.activeHeadcount }} | Exited: {{ stats.exitedHeadcount }}</p>
+                    </div>
+                    <div class="card p-4 border-l-4 border-blue-500">
+                        <p class="text-gray-500 text-xs uppercase font-bold text-blue-600">Actual Incurred YTD</p>
+                        <p class="text-2xl font-bold">₹ {{ formatCr(stats.totalIncurred) }} Cr</p>
+                        <p class="text-[10px] text-gray-400">Till: {{ todayStr }}</p>
+                    </div>
+                    <div class="card p-4 border-l-4 border-amber-500">
+                        <p class="text-gray-500 text-xs uppercase font-bold text-amber-600">Projected FY Cost</p>
+                        <p class="text-2xl font-bold">₹ {{ formatCr(stats.totalProjected) }} Cr</p>
+                        <p class="text-[10px] text-gray-400">Apr - Mar Baseline</p>
+                    </div>
+                    <div class="card p-4 border-l-4 border-emerald-500">
+                        <p class="text-gray-500 text-xs uppercase font-bold text-emerald-600">Inc. Adjusted Cost</p>
+                        <p class="text-2xl font-bold">₹ {{ formatCr(stats.totalIncProjected) }} Cr</p>
+                        <p class="text-[10px] text-emerald-600 font-semibold">Impact: ₹ {{ formatCr(stats.totalIncImpact) }} Cr</p>
+                    </div>
+                </div>
 
-        <div class="kpi-row">
-            <div class="kpi-tile"><label>Current HC</label><div id="hc-active" class="value">0</div></div>
-            <div class="kpi-tile"><label>To Be Hired</label><div id="hc-planned" class="value">0</div></div>
-            <div class="kpi-tile"><label>Monthly Cost</label><div id="cost-monthly" class="value">₹0</div></div>
-            <div class="kpi-tile"><label>YTD Cost</label><div id="cost-ytd" class="value">₹0</div></div>
-            <div class="kpi-tile"><label>Annual Projection</label><div id="cost-annual" class="value">₹0</div></div>
-        </div>
+                <div class="grid grid-cols-12 gap-6">
+                    <!-- Left: Assumptions & Increments -->
+                    <div class="col-span-12 lg:col-span-4 space-y-6">
+                        <div class="card p-5">
+                            <h3 class="font-bold text-gray-800 mb-4 border-b pb-2">Increment Planning</h3>
+                            <div v-for="cadre in cadres" :key="cadre" class="mb-4 bg-gray-50 p-3 rounded">
+                                <p class="text-xs font-bold text-gray-600 mb-2">{{ cadre }}</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[10px] text-gray-400 block uppercase font-bold">Base %</label>
+                                        <input type="number" v-model.number="increments[cadre].base" class="w-full border rounded p-1 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-gray-400 block uppercase font-bold">Market %</label>
+                                        <input type="number" v-model.number="increments[cadre].market" class="w-full border rounded p-1 text-sm">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-        <div class="grid">
-            <div class="card"><h4>BY COHORT</h4><table id="cohortTable"><thead><tr><th>Cohort</th><th>HC</th><th>YTD Cost</th></tr></thead><tbody></tbody></table></div>
-            <div class="card"><h4>BY TYPE</h4><table id="typeTable"><thead><tr><th>Type</th><th>HC</th><th>YTD Cost</th></tr></thead><tbody></tbody></table></div>
-            <div class="card"><h4>BY LEVEL</h4><table id="levelTable"><thead><tr><th>Level</th><th>HC</th><th>YTD Cost</th></tr></thead><tbody></tbody></table></div>
-        </div>
+                        <div class="card p-5 bg-gray-900 text-white">
+                            <h3 class="font-bold mb-4 border-b border-gray-700 pb-2 text-sabyasachi-gold">Calculation Assumptions</h3>
+                            <ul class="text-xs space-y-3 opacity-80">
+                                <li>• <strong>FY:</strong> April 1 to March 31</li>
+                                <li>• <strong>Proration:</strong> Daily (Annual CTC / 365)</li>
+                                <li>• <strong>Today:</strong> Calculation fixed at {{ todayStr }}</li>
+                                <li>• <strong>Exits:</strong> Prorated only for days active within FY.</li>
+                                <li>• <strong>Increments:</strong> Applied on actual employee CTC.</li>
+                            </ul>
+                        </div>
+                    </div>
 
-        <div class="card" style="margin-top:20px;">
-            <h4 id="chartTitle">FY COST TREND (YOY)</h4>
-            <div style="height: 300px;"><canvas id="mainChart"></canvas></div>
-        </div>
+                    <!-- Right: Charts & Table -->
+                    <div class="col-span-12 lg:col-span-8 space-y-6">
+                        <div class="card p-5">
+                            <h3 class="font-bold text-gray-800 mb-4">Cost Distribution by Cadre</h3>
+                            <div class="h-64">
+                                <canvas id="cadreChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card overflow-hidden">
+                            <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+                                <h3 class="font-bold text-gray-800">Departmental Cost Breakdown</h3>
+                                <input type="text" v-model="searchTerm" placeholder="Search Dept..." class="text-sm border rounded px-2 py-1">
+                            </div>
+                            <div class="max-h-96 overflow-y-auto">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-gray-100 sticky top-0">
+                                        <tr>
+                                            <th class="p-3">Department</th>
+                                            <th class="p-3 text-right">Headcount</th>
+                                            <th class="p-3 text-right">Incurred YTD</th>
+                                            <th class="p-3 text-right">Inc. Projected</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="dept in filteredDeptData" :key="dept.name" class="border-b hover:bg-slate-50">
+                                            <td class="p-3 font-medium">{{ dept.name }}</td>
+                                            <td class="p-3 text-right">{{ dept.count }}</td>
+                                            <td class="p-3 text-right text-blue-600 font-mono">₹ {{ formatLakh(dept.incurred) }} L</td>
+                                            <td class="p-3 text-right text-emerald-600 font-bold font-mono">₹ {{ formatLakh(dept.incProjected) }} L</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        let MASTER = [];
-        let chart = null;
+        const { createApp, ref, computed, watch, onMounted } = Vue;
 
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            if (email === 'admin@sabyasachi.com' && document.getElementById('password').value === 'admin123') {
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('mainDashboard').style.display = 'block';
-                document.getElementById('welcomeUser').innerText = `Welcome, ${email}`;
-                
-                const now = new Date();
-                const fyS = now.getMonth() < 3 ? now.getFullYear() - 1 : now.getFullYear();
-                document.getElementById('startDate').value = `${fyS}-04-01`;
-                document.getElementById('endDate').valueAsDate = now;
-            } else { alert("Login Denied"); }
-        });
+        createApp({
+            setup() {
+                const rawData = ref([]);
+                const searchTerm = ref('');
+                const cadres = ['Management', 'Non Management', 'Contractual', 'Consultant'];
+                const increments = ref({
+                    'Management': { base: 0, market: 0 },
+                    'Non Management': { base: 0, market: 0 },
+                    'Contractual': { base: 0, market: 0 },
+                    'Consultant': { base: 0, market: 0 }
+                });
 
-        function handleExcel(e) {
-            const reader = new FileReader();
-            reader.onload = (evt) => {
-                const wb = XLSX.read(evt.target.result, { type: 'binary', cellDates: true });
-                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                
-                MASTER = json.map(r => ({
-                    code: r['Employee Code'], cohort: String(r['Cohort'] || 'Other'), dept: String(r['Department'] || 'Other'),
-                    type: String(r['Employee Type'] || 'Other'), level: String(r['Level'] || '0'),
-                    doj: new Date(r['Date of Joining']),
-                    dol: r['Date of Leaving'] ? new Date(r['Date of Leaving']) : null,
-                    ctc: parseFloat(String(r['Annual CTC']).replace(/,/g, '')) || 0,
-                    status: String(r['Status'] || 'Active')
-                }));
-                
-                populateFilters();
-                calculate();
-                renderChart();
-                document.getElementById('lastUpdateText').innerText = "Last Updated: " + new Date().toLocaleTimeString();
-            };
-            reader.readAsBinaryString(e.target.files[0]);
-        }
+                const fyStart = new Date(new Date().getFullYear() - (new Date().getMonth() < 3 ? 1 : 0), 3, 1);
+                const fyEnd = new Date(fyStart.getFullYear() + 1, 2, 31);
+                const today = new Date();
+                const todayStr = today.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
-        function populateFilters() {
-            const fill = (id, key) => {
-                const vals = [...new Set(MASTER.map(d => d[key]))].sort();
-                const sel = document.getElementById(id);
-                sel.innerHTML = '';
-                vals.forEach(v => sel.innerHTML += `<option value="${v}" selected>${v}</option>`);
-            };
-            fill('cohortFilter', 'cohort'); fill('deptFilter', 'dept'); fill('typeFilter', 'type'); fill('levelFilter', 'level');
-        }
+                let chart = null;
 
-        function calculate() {
-            const startFY = new Date(document.getElementById('startDate').value);
-            const analysisDate = new Date(document.getElementById('endDate').value);
-            
-            const selCohorts = Array.from(document.getElementById('cohortFilter').selectedOptions).map(o => o.value);
-            const selDepts = Array.from(document.getElementById('deptFilter').selectedOptions).map(o => o.value);
-            const selTypes = Array.from(document.getElementById('typeFilter').selectedOptions).map(o => o.value);
-            const selLevels = Array.from(document.getElementById('levelFilter').selectedOptions).map(o => o.value);
+                const handleFileUpload = (e) => {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        const bstr = evt.target.result;
+                        const wb = XLSX.read(bstr, { type: 'binary', cellDates: true });
+                        const wsname = wb.SheetNames[0];
+                        const ws = wb.Sheets[wsname];
+                        const data = XLSX.utils.sheet_to_json(ws);
+                        rawData.value = data;
+                    };
+                    reader.readAsBinaryString(file);
+                };
 
-            let filtered = MASTER.filter(d => 
-                selCohorts.includes(d.cohort) && selDepts.includes(d.dept) && 
-                selTypes.includes(d.type) && selLevels.includes(d.level)
-            );
+                const processedData = computed(() => {
+                    return rawData.value.map(row => {
+                        const annualCTC = parseFloat(row['Annual CTC'] || 0);
+                        const doj = new Date(row['Date of Joining']);
+                        const dol = row['Date of Leaving'] ? new Date(row['Date of Leaving']) : null;
+                        const cadre = cadres.includes(row['Cadre']) ? row['Cadre'] : 'Non Management';
+                        
+                        // Actual Incurred Calculation
+                        const startCalc = doj > fyStart ? doj : fyStart;
+                        const endCalc = (dol && dol < today) ? dol : today;
+                        let incurredDays = 0;
+                        if (startCalc <= endCalc && doj <= today) {
+                            incurredDays = Math.max(0, Math.ceil((endCalc - startCalc) / (1000 * 60 * 60 * 24)) + 1);
+                        }
+                        const actualIncurred = (annualCTC / 365) * incurredDays;
 
-            let mCost = 0, ytdCost = 0, hcCurrent = 0, hcPlanned = 0;
+                        // Projected FY Calculation
+                        const endFYCalc = (dol && dol < fyEnd) ? dol : fyEnd;
+                        let projectedDays = 0;
+                        if (startCalc <= endFYCalc) {
+                            projectedDays = Math.max(0, Math.ceil((endFYCalc - startCalc) / (1000 * 60 * 60 * 24)) + 1);
+                        }
+                        const projectedFY = (annualCTC / 365) * projectedDays;
 
-            filtered.forEach(emp => {
-                const doj = emp.doj, dol = emp.dol || new Date(2099, 11, 31);
-                
-                // Headcount logic: Active or Serving Notice as of Analysis Date
-                if (doj <= analysisDate && dol >= analysisDate) {
-                    if (emp.status === 'Active' || emp.status === 'Serving Notice') {
-                        hcCurrent++;
-                        mCost += getMonthCost(emp, analysisDate.getFullYear(), analysisDate.getMonth());
-                    }
-                }
-                if (emp.status.toLowerCase().includes('vacancy') || emp.status.toLowerCase().includes('planned')) {
-                    hcPlanned++;
-                }
+                        // Increment Calculation
+                        const incRate = (increments.value[cadre].base + increments.value[cadre].market) / 100;
+                        const incProjected = projectedFY * (1 + incRate);
 
-                // YTD Loop: April to Analysis Date
-                let r = new Date(startFY);
-                while (r <= analysisDate) {
-                    ytdCost += getMonthCost(emp, r.getFullYear(), r.getMonth());
-                    r.setMonth(r.getMonth() + 1);
-                }
-            });
+                        return {
+                            ...row,
+                            Cadre: cadre,
+                            actualIncurred,
+                            projectedFY,
+                            incProjected,
+                            isActive: !dol || dol > today
+                        };
+                    });
+                });
 
-            // Annual Projection
-            const fyEnd = new Date(startFY.getFullYear() + 1, 2, 31);
-            const monthsLeft = (fyEnd.getFullYear() - analysisDate.getFullYear()) * 12 + (fyEnd.getMonth() - analysisDate.getMonth());
-            const annualProjected = ytdCost + (mCost * monthsLeft);
+                const stats = computed(() => {
+                    const res = { totalHeadcount: processedData.value.length, activeHeadcount: 0, exitedHeadcount: 0, totalIncurred: 0, totalProjected: 0, totalIncProjected: 0, totalIncImpact: 0 };
+                    processedData.value.forEach(e => {
+                        if (e.isActive) res.activeHeadcount++; else res.exitedHeadcount++;
+                        res.totalIncurred += e.actualIncurred;
+                        res.totalProjected += e.projectedFY;
+                        res.totalIncProjected += e.incProjected;
+                    });
+                    res.totalIncImpact = res.totalIncProjected - res.totalProjected;
+                    return res;
+                });
 
-            document.getElementById('hc-active').innerText = hcCurrent;
-            document.getElementById('hc-planned').innerText = hcPlanned;
-            document.getElementById('cost-monthly').innerText = fmt(mCost);
-            document.getElementById('cost-ytd').innerText = fmt(ytdCost);
-            document.getElementById('cost-annual').innerText = fmt(annualProjected);
+                const filteredDeptData = computed(() => {
+                    const depts = {};
+                    processedData.value.forEach(e => {
+                        const d = e.Department || 'Unassigned';
+                        if (!depts[d]) depts[d] = { name: d, count: 0, incurred: 0, incProjected: 0 };
+                        depts[d].count++;
+                        depts[d].incurred += e.actualIncurred;
+                        depts[d].incProjected += e.incProjected;
+                    });
+                    return Object.values(depts)
+                        .filter(d => d.name.toLowerCase().includes(searchTerm.value.toLowerCase()))
+                        .sort((a, b) => b.incProjected - a.incProjected);
+                });
 
-            updateTable('cohortTable', filtered, 'cohort', startFY, analysisDate);
-            updateTable('typeTable', filtered, 'type', startFY, analysisDate);
-            updateTable('levelTable', filtered, 'level', startFY, analysisDate);
-        }
+                const formatCr = (val) => (val / 10000000).toFixed(2);
+                const formatLakh = (val) => (val / 100000).toFixed(2);
 
-        function getMonthCost(emp, year, month) {
-            const mStart = new Date(year, month, 1);
-            const mEnd = new Date(year, month + 1, 0);
-            const daysInMonth = mEnd.getDate();
-            const overlapS = emp.doj > mStart ? emp.doj : mStart;
-            const overlapE = (emp.dol && emp.dol < mEnd) ? emp.dol : mEnd;
+                const updateChart = () => {
+                    if (!processedData.value.length) return;
+                    const ctx = document.getElementById('cadreChart').getContext('2d');
+                    const dataByCadre = cadres.map(c => {
+                        return processedData.value.filter(e => e.Cadre === c).reduce((sum, e) => sum + e.incProjected, 0);
+                    });
 
-            if (overlapS <= mEnd && overlapE >= mStart) {
-                const activeDays = Math.max(0, (overlapE - overlapS) / (1000 * 60 * 60 * 24) + 1);
-                return (emp.ctc / 12) * (activeDays / daysInMonth);
+                    if (chart) chart.destroy();
+                    chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: cadres,
+                            datasets: [{
+                                label: 'Increment Adjusted Cost (₹)',
+                                data: dataByCadre,
+                                backgroundColor: ['#1a1a1a', '#9c844c', '#475569', '#94a3b8']
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                };
+
+                watch([processedData, increments], () => {
+                    setTimeout(updateChart, 100);
+                }, { deep: true });
+
+                const exportData = () => {
+                    const summary = cadres.map(c => ({
+                        Cadre: c,
+                        Base_Inc: increments.value[c].base + '%',
+                        Market_Corr: increments.value[c].market + '%',
+                        Total_Projected_Cost: stats.value.totalIncProjected
+                    }));
+                    
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "Budget Summary");
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(processedData.value), "Detailed Employee Data");
+                    XLSX.writeFile(wb, `Sabyasachi_Budget_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
+                };
+
+                return {
+                    handleFileUpload, processedData, stats, cadres, increments, 
+                    filteredDeptData, searchTerm, formatCr, formatLakh, todayStr, exportData
+                };
             }
-            return 0;
-        }
-
-        function updateTable(id, data, key, fyS, analysisD) {
-            const tbody = document.querySelector(`#${id} tbody`);
-            tbody.innerHTML = '';
-            const groups = [...new Set(data.map(d => d[key]))].sort();
-            groups.forEach(g => {
-                const subset = data.filter(d => d[key] === g);
-                let hc = 0, cost = 0;
-                subset.forEach(e => {
-                    if (e.doj <= analysisD && (e.dol || new Date(2099)) >= analysisD && (e.status === 'Active' || e.status === 'Serving Notice')) hc++;
-                    let r = new Date(fyS); while(r <= analysisD) { cost += getMonthCost(e, r.getFullYear(), r.getMonth()); r.setMonth(r.getMonth()+1); }
-                });
-                tbody.innerHTML += `<tr><td>${g}</td><td>${hc}</td><td>${fmt(cost)}</td></tr>`;
-            });
-        }
-
-        function renderChart() {
-            const years = [2023, 2024, 2025];
-            const data = years.map(y => {
-                let sum = 0;
-                const fyS = new Date(y, 3, 1), fyE = new Date(y+1, 2, 31);
-                MASTER.forEach(e => {
-                    let r = new Date(fyS); while(r <= fyE) { sum += getMonthCost(e, r.getFullYear(), r.getMonth()); r.setMonth(r.getMonth()+1); }
-                });
-                return sum;
-            });
-
-            if(chart) chart.destroy();
-            chart = new Chart(document.getElementById('mainChart'), {
-                type: 'bar',
-                data: { labels: ['FY 23-24', 'FY 24-25', 'FY 25-26'], datasets: [{ data: data, backgroundColor: '#000' }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-        }
-
-        function fmt(n) { 
-            if (n >= 10000000) return "₹" + (n/10000000).toFixed(2) + " Cr"; 
-            if (n >= 100000) return "₹" + (n/100000).toFixed(2) + " L";
-            return "₹" + Math.round(n).toLocaleString('en-IN'); 
-        }
+        }).mount('#app');
     </script>
 </body>
 </html>
